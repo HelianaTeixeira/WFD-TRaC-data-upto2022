@@ -4,9 +4,8 @@
 ## WFD-TRaC-data-upto2022
 Assembling Water Quality data from: 
 
-* WISE6 WFD Water Quality Supporting Elements, 
-* WISE4 WFD Biological Quality Elements (EQR and EQS) and 
-* WFD database 2nd RBP (BQE categorical data only - EQS).
+* WISE4 WFD Biological Quality Elements (EQS), 
+* WISE6 WFD Water Quality Supporting Elements.
 
 (All data sources above were assessed before October 2022).
 
