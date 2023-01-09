@@ -229,22 +229,17 @@ SWB %>%
 # 2 UKGI6903
 # 3 UKGI6902 #n= 3 the same UK WB previously identified as CW (see above)
 
-SWB %>%
-  filter(surfaceWaterBodyCategory == "TeW") %>%
-  count() #n = 54 assumed TW
-
 #correct WC spellings before merge
 SWB <- SWB %>%
-  mutate(surfaceWaterBodyCategory = case_when(surfaceWaterBodyCategory == "TeW" ~ "TW",
-            surfaceWaterBodyCategory == "Unpopulated" ~ "CW",
+  mutate(surfaceWaterBodyCategory = case_when(surfaceWaterBodyCategory == "Unpopulated" ~ "CW",
             TRUE ~ as.character(surfaceWaterBodyCategory)))
 
 #check corrections to WC
-levels(factor(SWB$surfaceWaterBodyCategory)) #"CW" "LW" "RW" "TW"
+levels(factor(SWB$surfaceWaterBodyCategory)) #"CW" "LW" "RW" "TeW" "TW"
 
 SWB %>%
   group_by(surfaceWaterBodyCategory)%>%
-  count() #unique 8708 CW & 2109 TW
+  count() #unique  8708 CW & 2055 TW
 
 SWB %>%
   filter(surfaceWaterBodyCategory == "TW") %>% #CW
