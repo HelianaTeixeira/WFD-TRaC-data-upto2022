@@ -4,7 +4,8 @@
 ## WFD-TRaC-data-upto2022
 Assembling Water Quality data from: 
 
-* WISE4 WFD Biological Quality Elements (EQS) (incl. 2010 and 2016), 
+* WISE4 WFD Biological Quality Elements (EQS) (incl. 2010 and 2016),
+* WISE2 EEA Waterbase – Biology (EQR),
 * WISE6 WFD Water Quality Supporting Elements.
 
 (All data sources above were assessed before October 2022).
@@ -14,3 +15,8 @@ This work was developed within the Water Framework Directive (WFD) Common Implem
 - authors: Heliana Teixeira and Geoff Phillips
 - contacts: heliana.teixeira@ua.pt
 - date created: 2022.10.20
+
+links to WFD data sources:
+wise2 https://www.eea.europa.eu/data-and-maps/data/waterbase-biology-1
+wise4 https://www.eea.europa.eu/data-and-maps/data/wise-wfd-4
+wise6 https://www.eea.europa.eu/data-and-maps/data/waterbase-water-quality-icm-2
