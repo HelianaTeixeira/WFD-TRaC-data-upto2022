@@ -167,6 +167,11 @@ dat_WQ_TW<- lDataFrames[[2]] %>%
   mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite") %>% 
   collect()
 
+dat_WQ_TW$Created <- Sys.Date()
+dat_WQ_TW <- dat_WQ_TW %>% ungroup()
+saveRDS(dat_WQ_TW,file = here("Data","dat_WQ_TW.rds"))
+
+
 #Select CW data and summarise
 dat_WQ_CW<- lDataFrames[[2]] %>%
   select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeSamplingDate,parameterSampleDepth,sampleIdentifier,resultObservedValue) %>% 
@@ -179,3 +184,7 @@ dat_WQ_CW<- lDataFrames[[2]] %>%
             resultNumberOfSamples = n()) %>% 
   mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite") %>% 
   collect()
+
+dat_WQ_CW$Created <- Sys.Date()
+dat_WQ_CW <- dat_WQ_CW %>% ungroup()
+saveRDS(dat_WQ_CW,file = here("Data","dat_WQ_CW.rds"))
