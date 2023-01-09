@@ -164,8 +164,7 @@ dat_WQ_TW<- lDataFrames[[2]] %>%
             resultMinimumValue = min(resultObservedValue, na.rm=TRUE),
             resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
             resultNumberOfSamples = n()) %>% 
-  mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite") %>% 
-  collect()
+  mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite")
 
 dat_WQ_TW$Created <- Sys.Date()
 dat_WQ_TW <- dat_WQ_TW %>% ungroup()
@@ -182,9 +181,12 @@ dat_WQ_CW<- lDataFrames[[2]] %>%
             resultMinimumValue = min(resultObservedValue, na.rm=TRUE),
             resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
             resultNumberOfSamples = n()) %>% 
-  mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite") %>% 
-  collect()
+  mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite")
 
 dat_WQ_CW$Created <- Sys.Date()
 dat_WQ_CW <- dat_WQ_CW %>% ungroup()
 saveRDS(dat_WQ_CW,file = here("Data","dat_WQ_CW.rds"))
+
+#Create a list of dets, write to Excel for reference
+library(openxlsx)
+write.xlsx(summary_codes,here("Data","DetList.xlsx"))
