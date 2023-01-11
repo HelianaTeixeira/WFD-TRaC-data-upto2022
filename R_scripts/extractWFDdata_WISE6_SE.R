@@ -166,6 +166,54 @@ dat_WQ_TW<- lDataFrames[[2]] %>%
             resultNumberOfSamples = n()) %>% 
   mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite")
 
+
+## add spatial info to data
+spatial_dat_shrt <-spatial_dat %>% select(monitoringSiteIdentifier,thematicIdIdentifier,lat,lon,waterBodyIdentifier,waterBodyName,countryCode)
+
+#1st check for duplicates in spatial data table
+spatial_dat_shrt%>% group_by(monitoringSiteIdentifier)%>%
+  count()%>%
+  filter(n>1)%>%
+  print(n=23) #22 duplicates
+
+#remove n= 22 duplicates that have exact same info
+spatial_dat_shrt <- spatial_dat_shrt %>%
+  distinct() #n=2828
+
+#left_join spatial data info
+dat_WQ_TW.test2 <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIdentifier")) # n stays the same OK
+
+#check for missing spatial coordinates
+dat_WQ_TW.test2%>%filter(is.na(lat))%>%
+  group_by(countryCode)%>%
+  count()
+
+# countryCode     n
+# <chr>       <int>
+#   1 BG              2
+# 2 ES              9
+# 3 IT             10
+# 4 UK            478
+# 5 NA             33
+
+#samples name mismatch correct to get lat/lon in left join
+# italian:
+# 1 IT05EC_VE-8 
+# 2 IT05ENC4_VE-6  
+# 3 IT05PNC1_VE-1 
+
+#what about these - LEFT HERE:
+  # UKEA_WIMS_TH_PTHR0107
+  # UKEA_WIMS_TH_PRGR0081
+  # UKEA_WIMS_TH_PRGR0030
+  # UKEA_WIMS_TH_PCRR0025
+  # UKEA_WIMS_SW_E1008300
+  # UKEA_WIMS_SW_81930101
+  # UKEA_WIMS_SO_F0002151
+
+dat_WQ_TW.test3 <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIdentifier", is.na("monitoringSiteIdentifier")=="thematicIdIdentifier" ))
+
+
 dat_WQ_TW$Created <- Sys.Date()
 dat_WQ_TW <- dat_WQ_TW %>% ungroup()
 saveRDS(dat_WQ_TW,file = here("Data","dat_WQ_TW.rds"))
@@ -182,6 +230,8 @@ dat_WQ_CW<- lDataFrames[[2]] %>%
             resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
             resultNumberOfSamples = n()) %>% 
   mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite")
+
+
 
 dat_WQ_CW$Created <- Sys.Date()
 dat_WQ_CW <- dat_WQ_CW %>% ungroup()
