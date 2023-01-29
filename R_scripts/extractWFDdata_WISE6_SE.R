@@ -3,6 +3,11 @@
 # author: Heliana Teixeira
 # date: 14.12.2022
 
+#Description
+#This script assembles a set of TRAC WQ summary metrics for an appropriate set of supporting elements, 
+#taken from the EEA state of the environment WISE 6 data set 
+#downloaded from https://www.eea.europa.eu/data-and-maps/data/waterbase-water-quality-icm-2 ; version available online from 11th May 2022.
+
 #load packages
 library(here)
 library(tidyverse)
@@ -180,6 +185,39 @@ spatial_dat_shrt%>% group_by(monitoringSiteIdentifier)%>%
 spatial_dat_shrt <- spatial_dat_shrt %>%
   distinct() #n=2828
 
+#check for missing spatial coordinates
+spatial_dat_shrt%>%filter(is.na(lat))%>%
+  group_by(monitoringSiteIdentifier)%>%
+  count()%>%
+  print(n=26)
+# monitoringSiteIdentifier      n
+# 1 BG60000976                   1
+# 2 ES040ESPF000400127           1
+# 3 ESBIBID-R01                  1
+# 4 ESLELEA-R05                  1
+# 5 ESOKOKA-R03                  1
+# 6 ESOKOLA-R01                  1
+# 7 ESORALT-R01                  1
+# 8 ESORORI-R01                  1
+# 9 ESORSGO-R01                  1
+# 10 IT09-MAT-P077                1
+# 11 IT09-MAT-P084                1
+# 12 IT09-MAT-P087                1
+# 13 IT09-MAT-P104                1
+# 14 IT09-MAT-P210                1
+# 15 IT09-MAT-P212                1
+# 16 IT15-VES8                    1
+# 17 UKEA_BIOSYS_NE_155650        1
+# 18 UKEA_BIOSYS_SO_43800         1
+# 19 UKEA_BIOSYS_SW_9318          1
+# 20 UKEA_WIMS_SO_F0002151        1
+# 21 UKEA_WIMS_SW_81930101        1
+# 22 UKEA_WIMS_SW_E1008300        1
+# 23 UKEA_WIMS_TH_PCRR0025        1
+# 24 UKEA_WIMS_TH_PRGR0030        1
+# 25 UKEA_WIMS_TH_PRGR0081        1
+# 26 UKEA_WIMS_TH_PTHR0107        1
+
 #left_join spatial data info
 dat_WQ_TW.test2 <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIdentifier")) # n stays the same OK
 
@@ -187,36 +225,72 @@ dat_WQ_TW.test2 <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIden
 dat_WQ_TW.test2%>%filter(is.na(lat))%>%
   group_by(countryCode)%>%
   count()
-
-# countryCode     n
-# <chr>       <int>
-#   1 BG              2
+# countryCode      n
+# 1 BG              2
 # 2 ES              9
 # 3 IT             10
 # 4 UK            478
 # 5 NA             33
 
-#samples name mismatch correct to get lat/lon in left join
-# italian:
+dat_WQ_TW.test2%>%filter(is.na(lat))%>%
+  group_by(monitoringSiteIdentifier)%>%
+  count()%>%
+  print(n=16)
+# monitoringSiteIdentifier       n
+# 1 BG60000976                   2 no lat in spatial_dat_shrt
+# 2 ES040ESPF000400127           9 no lat
+# 3 IT05EC_Ve-8                 11 error in name
+# 4 IT05ENC4_Ve-6               11 error in name
+# 5 IT05PNC1_Ve-1               11 error in name
+# 6 IT09-MAT-P077                3 no lat
+# 7 IT09-MAT-P084                3 no lat
+# 8 IT09-MAT-P210                2 no lat
+# 9 IT09-MAT-P212                2 no lat
+# 10 UKEA_WIMS_SO_F0002151       64 no lat
+# 11 UKEA_WIMS_SW_81930101       64 no lat
+# 12 UKEA_WIMS_SW_E1008300       65 no lat
+# 13 UKEA_WIMS_TH_PCRR0025       59 no lat
+# 14 UKEA_WIMS_TH_PRGR0030       67 no lat
+# 15 UKEA_WIMS_TH_PRGR0081       68 no lat
+# 16 UKEA_WIMS_TH_PTHR0107       91 no lat
+
+
+#correct samples name mismatchto get lat/lon in left join
+# italian: correct names in from dat_WQ_TW
+# 3 IT05EC_Ve-8                 11
+# 4 IT05ENC4_Ve-6               11
+# 5 IT05PNC1_Ve-1               11
+#to:
 # 1 IT05EC_VE-8 
 # 2 IT05ENC4_VE-6  
 # 3 IT05PNC1_VE-1 
 
-#what about these - LEFT HERE:
-  # UKEA_WIMS_TH_PTHR0107
-  # UKEA_WIMS_TH_PRGR0081
-  # UKEA_WIMS_TH_PRGR0030
-  # UKEA_WIMS_TH_PCRR0025
-  # UKEA_WIMS_SW_E1008300
-  # UKEA_WIMS_SW_81930101
-  # UKEA_WIMS_SO_F0002151
+dat_WQ_TW <- dat_WQ_TW %>% mutate(monitoringSiteIdentifier=
+                       case_when(monitoringSiteIdentifier == "IT05EC_Ve-8" ~ "IT05EC_VE-8",
+                                 monitoringSiteIdentifier == "IT05ENC4_Ve-6" ~ "IT05ENC4_VE-6",
+                                 monitoringSiteIdentifier == "IT05PNC1_Ve-1"~"IT05PNC1_VE-1",
+                                 TRUE ~ as.character(monitoringSiteIdentifier)))
 
-dat_WQ_TW.test3 <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIdentifier", is.na("monitoringSiteIdentifier")=="thematicIdIdentifier" ))
+#re-check
+dat_WQ_TW%>%
+  group_by(monitoringSiteIdentifier)%>%
+  count() #n=593 OK
+
+#left_join spatial data info
+dat_WQ_TW.spatial <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIdentifier")) # n stays the same OK
+
+#re-check
+dat_WQ_TW.spatial%>%filter(is.na(lat))%>%
+  group_by(monitoringSiteIdentifier)%>%
+  count() #n=13 OK
+
+#in case monitoring site id not available check to if ok to use thematicIdIdentifier
+#dat_WQ_TW.test3 <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIdentifier", is.na("monitoringSiteIdentifier")=="thematicIdIdentifier" ))
 
 
-dat_WQ_TW$Created <- Sys.Date()
-dat_WQ_TW <- dat_WQ_TW %>% ungroup()
-saveRDS(dat_WQ_TW,file = here("Data","dat_WQ_TW.rds"))
+dat_WQ_TW.spatial$Created <- Sys.Date()
+dat_WQ_TW.spatial <- dat_WQ_TW.spatial %>% ungroup()
+saveRDS(dat_WQ_TW.spatial,file = here("Data","dat_WQ_TW.rds"))
 
 
 #Select CW data and summarise
