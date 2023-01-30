@@ -3,6 +3,9 @@
 # author: Heliana Teixeira
 # date: 19.09.2022
 
+#Description
+#Extracting biology data from the EEA state of environment WISE4 data set; version from 25 March 2020. 
+
 #load packages
 library(here)
 library(tidyverse)
