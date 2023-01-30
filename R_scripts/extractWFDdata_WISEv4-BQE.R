@@ -4,7 +4,9 @@
 # date: 19.09.2022
 
 #Description
-#Extracting biology data from the EEA state of environment WISE4 data set; db version from 25 March 2020. 
+#Extracting biology data from the EEA state of environment WISE Water Framework Directive Database (https://www.eea.europa.eu/data-and-maps/data/wise-wfd-4); 
+#db version Last modified 01 Oct 2021 (wise-wfd-database_v01_r04). 
+#contains data from the 1st and 2nd River Basin Management Plans.
 
 #load packages
 library(here)
