@@ -1,12 +1,13 @@
-# Extract tables from EEA WISE SQLite database
-# version: WISE SOW v4 
+# Extract tables from EEA WISE WFD SQLite database
+# version: WISE SOW v01_r04 
 # author: Heliana Teixeira
 # date: 19.09.2022
 
-#Description
-#Extracting biology data from the EEA state of environment WISE Water Framework Directive Database (https://www.eea.europa.eu/data-and-maps/data/wise-wfd-4); 
-#db version Last modified 01 Oct 2021 (wise-wfd-database_v01_r04). 
-#contains data from the 1st and 2nd River Basin Management Plans.
+#Description of dataset
+#1st dataset: Extracting biology data from the EEA Water Framework Directive Database (WISE_WFD)
+#version: WISE SOW v01_r04 or wise-wfd-database_v01_r04 , last modified 01 Oct 2021
+#source: https://www.eea.europa.eu/data-and-maps/data/wise-wfd-4 
+#contains: data from 1st (2010) and 2nd (2016) River Basin Management Plans.
 
 #load packages
 library(here)
@@ -14,6 +15,7 @@ library(tidyverse)
 library(RSQLite)
 library(openxlsx)
 
+#extract 1st dataset
 #### Mapping the original database tables into a list of separate data frames----
 ## connect to db
 con1 <- dbConnect(drv=RSQLite::SQLite(), here("Databases", "WISE_SOW.sqlite")) #edit file name: dbname="WISE_SOW.sqlite"

@@ -1,0 +1,149 @@
+---
+title: "CombineTraC_SE-BQE"
+author: "HT"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(here)
+library(openxlsx)
+library(tidyverse)
+```
+
+## Combine WFD TraC Supporting and Biological QE data
+
+This script joins the previously extracted water quality data (WQ from WISE6) for selected supporting elements (SE) to the biological classifications (BQE from WISE4), for both TRaC water categories (TW & CW). 
+
+### 1. Create a list of determinand codes available per TraC water category
+
+```{r Dets}
+#Create a list of determinand codes of interest
+observedPropertyDeterminandCode <- c("EEA_3131-01-9","CAS_14797-55-8","EEA_3152-01-0","CAS_14797-65-0",
+             "CAS_14798-03-9","CAS_14265-44-2","EEA_3132-01-2","EEA_3164-01-0",
+             "EEA_3111-01-1","EEA_3141-01-3","EEA_31615-01-7","EEA_31-02-7",
+             "CAS_7723-14-0","EEA_3133-05-9","EEA_3133-06-0","CAS_16887-00-6",
+             "CAS_7664-41-7","EEA_3133-01-5","EEA_3112-01-4","EEA_3161-02-2",
+             "EEA_31613-01-1","EEA_31-03-8","EEA_3161-05-5","EEA_3161-03-3")
+
+observedPropertyDeterminandLabel <- c("Oxygen saturation","Nitrate","pH","Nitrite",
+                                      "Ammonium","Phosphate","Dissolved oxygen",
+                                      "Chlorophyll a","Secchi depth","Salinity",
+                                      "Total nitrogen","Total suspended solids",
+                                      "Total phosphorus","Dissolved organic carbon (DOC)",
+                                      "Total organic carbon (TOC)","Chloride",
+                                      "Ammonia","BOD5","Turbidity","Total oxidised nitrogen",
+                                      "Non-ionised ammonia","Total dissolved solids",
+                                      "Total inorganic nitrogen","Total organic nitrogen")
+# add an abbreviated name for convenience
+Det <- c("DOpc","NO3","pH","NO2","NH4","PO4P","DO","CHLA","SD","SAL","TN","SS","TP","DOC",
+         "TOC","Cl","NH3","BOD5","TURB","TON","NH3UI","TDS","TIN","TON")
+
+resultUom <- c("%","mg{NO3}/L","[pH]","mg{NO2}/L","mg{NH4}/L","mg{P}/L","mg/L",
+               "ug/L","m","{PSU}","mg{N}/L", "mg/L","mg{P}/L","mg{C}/L","mg{C}/L",
+               "mg/L","ug/L","mg{O2}/L","{NTU}","mg{N}/L","mg{NH3}/L","mg/L",
+               "mg{N}/L","mg{N}/L")
+
+# create data frame and rename columns
+Determinands <- data.frame(observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom)
+
+#Save determinands used as rds file
+saveRDS(Determinands,file = here("Data","Determinands_TRaC.rds")) #TRaC WQ sites
+notes <- "Determinands extracted in extractWFDdata_WISE6_SE for TRaC waters."
+writeLines(notes,here("Data","ReadMe_Determinands.txt"))
+
+#Save determinands used as xlsx workbook
+wb <- createWorkbook()
+addWorksheet(wb,"dets")
+addWorksheet(wb, "notes")
+writeData(wb,"dets",Determinands,startRow = 1,startCol = 1)
+writeData(wb,"notes",notes,startRow = 1,startCol = 1)
+saveWorkbook(wb,file =here("Data","Determinands.xlsx"),overwrite = TRUE)
+```
+
+
+```{r get TraC data}
+#get the SE WQ data for TRaC
+EEAWQdatTWSite <- readRDS(file = here("Data","dat_WQ_TW.rds")) #TW
+EEAWQdatCWSite <- readRDS(file = here("Data","dat_WQ_CW.rds")) #CW
+
+#add Determinands short names in Det
+Determinands.s<- Determinands %>% select(observedPropertyDeterminandLabel,Det)
+EEAWQdatTWSite <- EEAWQdatTWSite %>% left_join(Determinands.s, by="observedPropertyDeterminandLabel") #TW
+EEAWQdatCWSite <- EEAWQdatCWSite %>% left_join(Determinands.s, by="observedPropertyDeterminandLabel") #CW
+
+# Filter for data 2010-2015
+EEAWQdatTWSite.u<- EEAWQdatTWSite %>% 
+  filter(phenomenonTimeReferenceYear>2009 & phenomenonTimeReferenceYear <2016)
+Det.TW.u <- levels(factor(EEAWQdatTWSite.u$Det)) # list available dets: 21 Dets TW
+
+EEAWQdatCWSite.u<- EEAWQdatCWSite %>% 
+  filter(phenomenonTimeReferenceYear>2009 & phenomenonTimeReferenceYear <2016)
+Det.CW.u <- levels(factor(EEAWQdatCWSite.u$Det)) # list available dets: 13 Dets CW
+
+#summarise the data at Waterbody by averaging years
+EEAWQdatTWWB <- EEAWQdatTWSite.u %>% 
+    select(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom,resultMeanValue,lat,lon) %>% #waterBodyIdentifierScheme
+  group_by(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom) %>% #waterBodyIdentifierScheme
+  summarise(wbMeanValue=mean(resultMeanValue),nYears=n(),latMean=mean(lat),lonMean=mean(lon)) %>%  
+  ungroup()
+
+EEAWQdatCWWB <- EEAWQdatCWSite.u %>% 
+    select(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom,resultMeanValue,lat,lon) %>% #waterBodyIdentifierScheme
+  group_by(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom) %>% #waterBodyIdentifierScheme
+  summarise(wbMeanValue=mean(resultMeanValue),nYears=n(),latMean=mean(lat),lonMean=mean(lon)) %>%  
+  ungroup()
+```
+
+```{r Wide data}
+#TW
+EEAWQdatTWWB_wide <- EEAWQdatTWWB %>% 
+# could add a filter to select data with different number of years contributing to mean  
+  select(-observedPropertyDeterminandCode,-observedPropertyDeterminandLabel,-resultUom,-nYears,-latMean,-lonMean) %>% 
+  pivot_wider(names_from = Det, values_from = wbMeanValue )  %>% 
+  rename_with(~paste0(.x,"_Mn"),all_of(Det.TW.u))
+
+# change units of P data
+EEAWQdatTWWB_wide <- EEAWQdatTWWB_wide%>%
+  mutate(TP_Mn = TP_Mn * 1000, PO4P_Mn = PO4P_Mn * 1000)
+
+summary(EEAWQdatTWWB_wide)
+
+#CW
+EEAWQdatCWWB_wide <- EEAWQdatCWWB %>% 
+# could add a filter to select data with different number of years contributing to mean  
+  select(-observedPropertyDeterminandCode,-observedPropertyDeterminandLabel,-resultUom,-nYears,-latMean,-lonMean) %>% 
+  pivot_wider(names_from = Det, values_from = wbMeanValue )  %>% 
+  rename_with(~paste0(.x,"_Mn"),all_of(Det.CW.u))
+
+# change units of P data
+EEAWQdatCWWB_wide <- EEAWQdatCWWB_wide%>%
+  mutate(TP_Mn = TP_Mn * 1000, PO4P_Mn = PO4P_Mn * 1000)
+
+summary(EEAWQdatCWWB_wide)
+```
+
+```{r Combine SE and Biota EQS classifications}
+dat_WFD_TW <- readRDS(here("Data","dat_WFD_TW.rds"))
+
+WFD_dat_TW_2nd <- dat_WFD_TW %>% 
+  filter(cYear==2016) %>% 
+  filter(StartYear > 2009 |is.na(StartYear)) %>% 
+  ungroup()
+
+WFD_dat_Riv_2nd_wide <- WFD_dat_Riv_2nd %>% 
+  select(euSurfaceWaterBodyCode,countryCode,qeCode,qeStatusOrPotentialValue,naturalAWBHMWB,surfaceWaterBodyTypeCode,broaderType,broaderTypeCode,broaderType,broaderTypeCode,surfaceWaterBodyIntercalibrationType,surfaceWaterBodyIntercalibrationTypeCode,cArea,cLength) %>% 
+  pivot_wider(names_from = qeCode, values_from = qeStatusOrPotentialValue)
+
+```
+
+
+## Plots
+
+
+```{r pressure, include= FALSE,echo=FALSE}
+plot(pressure)
+```
+
