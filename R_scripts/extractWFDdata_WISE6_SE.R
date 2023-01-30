@@ -13,7 +13,7 @@ library(here)
 library(tidyverse)
 library(RSQLite)
 
-#### Mapping the original database table(s) into a list of separate data frames----
+### Mapping the original database table(s) into a list of separate data frames----
 ## connect to db
 con2 <- dbConnect(drv=RSQLite::SQLite(), here("Databases", "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite")) #edit file name: dbname="?.sqlite"
 
@@ -99,6 +99,52 @@ spatial_dat <- spatial_dat %>%
   filter(specialisedZoneType == "coastalWaterBody" | 
            specialisedZoneType == "transitionalWaterBody")
 
+## select spatial info to data to join
+spatial_dat_shrt <-spatial_dat %>% select(monitoringSiteIdentifier,thematicIdIdentifier,lat,lon,waterBodyIdentifier,waterBodyName,countryCode)
+
+#1st check for duplicates in spatial data table
+spatial_dat_shrt%>% group_by(monitoringSiteIdentifier)%>%
+  count()%>%
+  filter(n>1)%>%
+  print(n=23) #22 duplicates
+
+#remove n= 22 duplicates that have exact same info
+spatial_dat_shrt <- spatial_dat_shrt %>%
+  distinct() #n=2828
+
+#check for missing spatial coordinates
+spatial_dat_shrt%>%filter(is.na(lat))%>%
+  group_by(monitoringSiteIdentifier)%>%
+  count()%>%
+  print(n=26)
+# monitoringSiteIdentifier      n
+# 1 BG60000976                   1
+# 2 ES040ESPF000400127           1
+# 3 ESBIBID-R01                  1
+# 4 ESLELEA-R05                  1
+# 5 ESOKOKA-R03                  1
+# 6 ESOKOLA-R01                  1
+# 7 ESORALT-R01                  1
+# 8 ESORORI-R01                  1
+# 9 ESORSGO-R01                  1
+# 10 IT09-MAT-P077                1
+# 11 IT09-MAT-P084                1
+# 12 IT09-MAT-P087                1
+# 13 IT09-MAT-P104                1
+# 14 IT09-MAT-P210                1
+# 15 IT09-MAT-P212                1
+# 16 IT15-VES8                    1
+# 17 UKEA_BIOSYS_NE_155650        1
+# 18 UKEA_BIOSYS_SO_43800         1
+# 19 UKEA_BIOSYS_SW_9318          1
+# 20 UKEA_WIMS_SO_F0002151        1
+# 21 UKEA_WIMS_SW_81930101        1
+# 22 UKEA_WIMS_SW_E1008300        1
+# 23 UKEA_WIMS_TH_PCRR0025        1
+# 24 UKEA_WIMS_TH_PRGR0030        1
+# 25 UKEA_WIMS_TH_PRGR0081        1
+# 26 UKEA_WIMS_TH_PTHR0107        1
+
 ### Get SE parameters data ----
 names(lDataFrames[[2]])
 levels(factor(lDataFrames[[2]]$observedPropertyDeterminandCode)) 
@@ -157,9 +203,9 @@ detUsed <- c("EEA_3152-01-0","EEA_3164-01-0","EEA_3111-01-1","CAS_14797-55-8",
              "EEA_3112-01-4","EEA_3133-05-9","EEA_3133-06-0",
              "EEA_31-03-8","EEA_3161-03-3","CAS_14797-65-0")
 
-#select the TW and CW data and these codes and aggregate the data using a mean.
+#Then, below select the TW and CW data and these codes and aggregate the data using a mean.
 
-#Select TW data and summarise
+### Select TW data and summarise----
 dat_WQ_TW<- lDataFrames[[2]] %>%
   select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeSamplingDate,parameterSampleDepth,sampleIdentifier,resultObservedValue) %>% 
   filter(parameterWaterBodyCategory == "TW" & observedPropertyDeterminandCode %in% detUsed) %>% 
@@ -171,52 +217,6 @@ dat_WQ_TW<- lDataFrames[[2]] %>%
             resultNumberOfSamples = n()) %>% 
   mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite")
 
-
-## add spatial info to data
-spatial_dat_shrt <-spatial_dat %>% select(monitoringSiteIdentifier,thematicIdIdentifier,lat,lon,waterBodyIdentifier,waterBodyName,countryCode)
-
-#1st check for duplicates in spatial data table
-spatial_dat_shrt%>% group_by(monitoringSiteIdentifier)%>%
-  count()%>%
-  filter(n>1)%>%
-  print(n=23) #22 duplicates
-
-#remove n= 22 duplicates that have exact same info
-spatial_dat_shrt <- spatial_dat_shrt %>%
-  distinct() #n=2828
-
-#check for missing spatial coordinates
-spatial_dat_shrt%>%filter(is.na(lat))%>%
-  group_by(monitoringSiteIdentifier)%>%
-  count()%>%
-  print(n=26)
-# monitoringSiteIdentifier      n
-# 1 BG60000976                   1
-# 2 ES040ESPF000400127           1
-# 3 ESBIBID-R01                  1
-# 4 ESLELEA-R05                  1
-# 5 ESOKOKA-R03                  1
-# 6 ESOKOLA-R01                  1
-# 7 ESORALT-R01                  1
-# 8 ESORORI-R01                  1
-# 9 ESORSGO-R01                  1
-# 10 IT09-MAT-P077                1
-# 11 IT09-MAT-P084                1
-# 12 IT09-MAT-P087                1
-# 13 IT09-MAT-P104                1
-# 14 IT09-MAT-P210                1
-# 15 IT09-MAT-P212                1
-# 16 IT15-VES8                    1
-# 17 UKEA_BIOSYS_NE_155650        1
-# 18 UKEA_BIOSYS_SO_43800         1
-# 19 UKEA_BIOSYS_SW_9318          1
-# 20 UKEA_WIMS_SO_F0002151        1
-# 21 UKEA_WIMS_SW_81930101        1
-# 22 UKEA_WIMS_SW_E1008300        1
-# 23 UKEA_WIMS_TH_PCRR0025        1
-# 24 UKEA_WIMS_TH_PRGR0030        1
-# 25 UKEA_WIMS_TH_PRGR0081        1
-# 26 UKEA_WIMS_TH_PTHR0107        1
 
 #left_join spatial data info
 dat_WQ_TW.test2 <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIdentifier")) # n stays the same OK
@@ -287,13 +287,11 @@ dat_WQ_TW.spatial%>%filter(is.na(lat))%>%
 #in case monitoring site id not available check to if ok to use thematicIdIdentifier
 #dat_WQ_TW.test3 <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIdentifier", is.na("monitoringSiteIdentifier")=="thematicIdIdentifier" ))
 
-
 dat_WQ_TW.spatial$Created <- Sys.Date()
 dat_WQ_TW.spatial <- dat_WQ_TW.spatial %>% ungroup()
 saveRDS(dat_WQ_TW.spatial,file = here("Data","dat_WQ_TW.rds"))
 
-
-#Select CW data and summarise
+### Select CW data and summarise---- 
 dat_WQ_CW<- lDataFrames[[2]] %>%
   select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeSamplingDate,parameterSampleDepth,sampleIdentifier,resultObservedValue) %>% 
   filter(parameterWaterBodyCategory == "CW" & observedPropertyDeterminandCode %in% detUsed) %>% 
@@ -305,12 +303,46 @@ dat_WQ_CW<- lDataFrames[[2]] %>%
             resultNumberOfSamples = n()) %>% 
   mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite")
 
+#left_join spatial data info
+dat_WQ_CW.spatial<- left_join(dat_WQ_CW,spatial_dat_shrt,by=c("monitoringSiteIdentifier")) # n stays the same OK
 
+#check for missing spatial coordinates
+dat_WQ_CW.spatial%>%filter(is.na(lat))%>%
+  group_by(countryCode)%>%
+  count()
+# countryCode     n
+# 1 IT              8
+# 2 NA             16
 
-dat_WQ_CW$Created <- Sys.Date()
-dat_WQ_CW <- dat_WQ_CW %>% ungroup()
-saveRDS(dat_WQ_CW,file = here("Data","dat_WQ_CW.rds"))
+dat_WQ_CW.spatial%>%filter(is.na(lat))%>%
+  group_by(monitoringSiteIdentifier)%>%
+  count()
+# monitoringSiteIdentifier       n
+# 1 IT07MA00971                 16 no lat in spatial_dat_shrt
+# 2 IT09-MAT-P087                3 no lat in spatial_dat_shrt
+# 3 IT09-MAT-P104                2 no lat in spatial_dat_shrt
+# 4 IT15-VES8                    3 no lat in spatial_dat_shrt
 
-#Create a list of dets, write to Excel for reference
+#in case monitoring site id not available check to if ok to use thematicIdIdentifier
+#dat_WQ_CW.test3 <- left_join(dat_WQ_CW,spatial_dat_shrt,by=c("monitoringSiteIdentifier", is.na("monitoringSiteIdentifier")=="thematicIdIdentifier" ))
+
+dat_WQ_CW.spatial$Created <- Sys.Date()
+dat_WQ_CW.spatial <- dat_WQ_CW.spatial %>% ungroup()
+saveRDS(dat_WQ_CW.spatial,file = here("Data","dat_WQ_CW.rds"))
+
+### Create a list of dets, write to Excel for reference----
+
+TW.dets.summary<-dat_WQ_TW.spatial%>%group_by(observedPropertyDeterminandLabel,observedPropertyDeterminandCode,resultUom)%>%
+  count()%>%
+  arrange(desc(n))%>%
+  print(n=24)
+
+CW.dets.summary<-dat_WQ_CW.spatial%>%group_by(observedPropertyDeterminandLabel,observedPropertyDeterminandCode,resultUom)%>%
+  count()%>%
+  arrange(desc(n))%>%
+  print(n=23)
+
 library(openxlsx)
 write.xlsx(summary_codes,here("Data","DetList.xlsx"))
+write.xlsx(TW.dets.summary,here("Data","DetList-TW.xlsx"))
+write.xlsx(CW.dets.summary,here("Data","DetList-CW.xlsx"))
