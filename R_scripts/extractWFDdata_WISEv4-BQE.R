@@ -4,7 +4,7 @@
 # date: 19.09.2022
 
 #Description
-#Extracting biology data from the EEA state of environment WISE4 data set; version from 25 March 2020. 
+#Extracting biology data from the EEA state of environment WISE4 data set; db version from 25 March 2020. 
 
 #load packages
 library(here)
@@ -201,18 +201,18 @@ levels(factor(WDF_TRaC$qeCode))
 
 #get biological quality elements (BQE start with QE1)
 WDF_TRaC_BQE <-WDF_TRaC%>%
-  filter(grepl("QE1",qeCode)) %>%                        
-  mutate(qeStatusOrPotentialValue=as.integer(qeStatusOrPotentialValue)) %>% 
-  separate(qeMonitoringPeriod,c("StartYear","EndYear")) %>%
+  filter(grepl("QE1",qeCode)) %>%   # get biological quality elements            
+  mutate(qeStatusOrPotentialValue=as.integer(qeStatusOrPotentialValue)) %>% # convert class to integer
+  separate(qeMonitoringPeriod,c("StartYear","EndYear")) %>%  # create start and end year values
   mutate(StartYear=as.numeric(StartYear),EndYear=as.numeric(EndYear)) %>% 
-  filter(!is.na(qeStatusOrPotentialValue))
+  filter(!is.na(qeStatusOrPotentialValue))  # remove missing classifications
 
 WDF_TRaC_BQE %>%
   group_by(cYear)%>%
   count()
 # 5567 with 2010 data only
 # 7523 with 2016 data only
-# 13090 observations in total with both 2010 and 2016 data
+# 13090 observations in total with both 2010 and 2016 data (from 1st and 2nd RBMPs)
 
 #confirm WC
 levels(factor(WDF_TRaC_BQE$surfaceWaterBodyCategory)) #CW TW
@@ -351,6 +351,15 @@ dat_WDF_TRaC_BQE_type <- dat_WDF_TRaC_BQE_type %>%
 dat_WFD_TraC <- dat_WDF_TRaC_BQE_type
 dat_WFD_TW <- dat_WDF_TRaC_BQE_type %>% filter(surfaceWaterBodyCategory=="TW")
 dat_WFD_CW <- dat_WDF_TRaC_BQE_type %>% filter(surfaceWaterBodyCategory=="CW")
+
+TRaC.overview<-print(table(dat_WFD_TraC$countryCode,dat_WFD_TraC$surfaceWaterBodyCategory))
+TW.overview<-print(table(dat_WFD_TW$countryCode,dat_WFD_TW$qeCode))
+CW.overview<-print(table(dat_WFD_CW$countryCode,dat_WFD_CW$qeCode))
+
+library(openxlsx)
+write.xlsx(TRaC.overview,here("Data","TRaC-overview.xlsx"))
+write.xlsx(TW.overview,here("Data","TW-overview.xlsx"))
+write.xlsx(CW.overview,here("Data","CW-overview.xlsx"))
 
 saveRDS(dat_WFD_TraC,file = here("Data","dat_WFD_TraC.rds"))
 saveRDS(dat_WFD_TW,file = here("Data","dat_WFD_TW.rds"))
