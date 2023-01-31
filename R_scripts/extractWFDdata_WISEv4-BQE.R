@@ -9,6 +9,10 @@
 #source: https://www.eea.europa.eu/data-and-maps/data/wise-wfd-4 
 #contains: data from 1st (2010) and 2nd (2016) River Basin Management Plans.
 
+#note for future: 
+# The WISE-4 dataflow is no longer active. 
+# It has been superseded by WISE-6 for Water quality, and by WISE-2 for Biology reporting. 
+
 #load packages
 library(here)
 library(tidyverse)
