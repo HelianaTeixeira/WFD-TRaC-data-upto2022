@@ -4,6 +4,7 @@
 
 # Large database files
 *.sqlite
+/Databases/
 
 # Session Data files
 .RData
