@@ -345,3 +345,16 @@ CW.dets.summary<-dat_WQ_CW.spatial%>%group_by(observedPropertyDeterminandLabel,o
 library(openxlsx)
 write.xlsx(TW.dets.summary,here("Data","DetList-TW.xlsx"))
 write.xlsx(CW.dets.summary,here("Data","DetList-CW.xlsx"))
+
+### get summary of years available per Water Category ----
+dat_WQ_CW <- readRDS(here("Data","dat_WQ_CW.rds"))
+summary(as.factor(dat_WQ_CW$phenomenonTimeReferenceYear))
+# 2000  2001  2002  2003  2004  2007  2009  2010  2011  2012  2013  2014  2015  2016  2017  2018  2019  2020  2021 
+#   2     3     2     2     2     8    72   336   265     5     6  7236  7180   5201  5632  10970 6514  7828  1156 
+
+dat_WQ_TW <- readRDS(here("Data","dat_WQ_TW.rds"))
+summary(as.factor(dat_WQ_TW$phenomenonTimeReferenceYear))
+# 2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 
+#  9    8   42   14   13   11   10   21   12   167  498  152  116  334  1599 1672 1370 3071 3838 4125 3303    6 
+
+
