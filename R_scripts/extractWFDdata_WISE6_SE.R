@@ -255,7 +255,7 @@ dat_WQ_TW.test2%>%filter(is.na(lat))%>%
 # 16 UKEA_WIMS_TH_PTHR0107       91 no lat
 
 
-#correct samples name mismatchto get lat/lon in left join
+#correct samples name mismatch to get lat/lon in left join
 # italian: correct names in from dat_WQ_TW
 # 3 IT05EC_Ve-8                 11
 # 4 IT05ENC4_Ve-6               11
@@ -284,7 +284,7 @@ dat_WQ_TW.spatial%>%filter(is.na(lat))%>%
   group_by(monitoringSiteIdentifier)%>%
   count() #n=13 OK
 
-#in case monitoring site id not available check to if ok to use thematicIdIdentifier
+#in case monitoring site id not available check if ok to use thematicIdIdentifier
 #dat_WQ_TW.test3 <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIdentifier", is.na("monitoringSiteIdentifier")=="thematicIdIdentifier" ))
 
 dat_WQ_TW.spatial$Created <- Sys.Date()
@@ -323,7 +323,7 @@ dat_WQ_CW.spatial%>%filter(is.na(lat))%>%
 # 3 IT09-MAT-P104                2 no lat in spatial_dat_shrt
 # 4 IT15-VES8                    3 no lat in spatial_dat_shrt
 
-#in case monitoring site id not available check to if ok to use thematicIdIdentifier
+#in case monitoring site id not available check if ok to use thematicIdIdentifier
 #dat_WQ_CW.test3 <- left_join(dat_WQ_CW,spatial_dat_shrt,by=c("monitoringSiteIdentifier", is.na("monitoringSiteIdentifier")=="thematicIdIdentifier" ))
 
 dat_WQ_CW.spatial$Created <- Sys.Date()
@@ -343,6 +343,5 @@ CW.dets.summary<-dat_WQ_CW.spatial%>%group_by(observedPropertyDeterminandLabel,o
   print(n=23)
 
 library(openxlsx)
-write.xlsx(summary_codes,here("Data","DetList.xlsx"))
 write.xlsx(TW.dets.summary,here("Data","DetList-TW.xlsx"))
 write.xlsx(CW.dets.summary,here("Data","DetList-CW.xlsx"))
