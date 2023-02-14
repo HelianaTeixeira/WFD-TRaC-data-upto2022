@@ -7,7 +7,7 @@
 #1st dataset: Extracting biology data from the EEA Water Framework Directive Database (WISE_WFD)
 #version: WISE SOW v01_r04 or wise-wfd-database_v01_r04 , last modified 01 Oct 2021
 #source: https://www.eea.europa.eu/data-and-maps/data/wise-wfd-4 
-#contains: data from 1st (2010) and 2nd (2016) River Basin Management Plans.
+#contains: data from 1st (2010) and 2nd (2016) River Basin Management Plans (EQS only - categorical).
 
 #note for future: 
 # The WISE-4 dataflow is no longer active. 
@@ -167,7 +167,6 @@ str(lDataFrames[[30]]) #potential interest "SOW_SWB_swSignificantImpactOther"
 str(lDataFrames[[31]]) #potential interest "SOW_SWB_swSignificantPressureOther"
 
 #### Get WFD data set ----
-
 ### Extract table of Biological Quality Element classification results for TRaC Waters
 ## 1st check Water Categories
 unique(lDataFrames[[18]]$surfaceWaterBodyCategory)
@@ -227,7 +226,8 @@ levels(factor(WDF_TRaC_BQE$surfaceWaterBodyCategory)) #CW TW
 
 ### Get waterbody WB information
 SWB <- lDataFrames[[29]] %>% #"SOW_SWB_SurfaceWaterBody" 
-  select(cYear,countryCode,euSurfaceWaterBodyCode,surfaceWaterBodyCategory,surfaceWaterBodyName) #excluded var, no sense for TraC waters: broaderType,broaderTypeCode,broadType,broadTypeCode
+  select(cYear,countryCode,euSurfaceWaterBodyCode,surfaceWaterBodyCategory,surfaceWaterBodyName)
+      #excluded var, no sense for TraC waters: broaderType,broaderTypeCode,broadType,broadTypeCode
   
 levels(factor(SWB$surfaceWaterBodyCategory)) #[1] "CW" , "LW" ,"RW", "TeW" , "TW", "Unpopulated"
 
@@ -344,16 +344,54 @@ dat_WDF_TRaC_BQE_type$Created <- (Sys.Date()) # add date of creation, 25 variabl
 types_count <- dat_WDF_TRaC_BQE_type%>%
   group_by(surfaceWaterBodyIntercalibrationTypeCode)%>%
   count()
-# 2098 inapplicable
-# 5567 NA #assumed as inapplicable
 
+write.xlsx(types_count,here("Data","ICtypesTRaC_withEQS_WISE4.xlsx"))
+
+# # A tibble: 31 × 2
+# # Groups:   surfaceWaterBodyIntercalibrationTypeCode [31]
+# surfaceWaterBodyIntercalibrationTypeCode     n
+# <chr>                                    <int>
+#   1 CW-BC1                                     576
+# 2 CW-BC3                                     113
+# 3 CW-BC4                                      10
+# 4 CW-BC5                                      12
+# 5 CW-BC6                                      73
+# 6 CW-BC7                                      20
+# 7 CW-BC8                                      69
+# 8 CW-BC9                                     319
+# 9 CW-BL1                                      41
+# 10 CW-NEA1/26                                1313
+# 11 CW-NEA10                                    51
+# 12 CW-NEA3/4                                   55
+# 13 CW-NEA7                                    249
+# 14 CW-NEA8a                                   108
+# 15 CW-NEA8b                                   119
+# 16 CW-NEA9                                    127
+# 17 CW-Type_I                                   32
+# 18 CW-Type_IIA                                140
+# 19 CW-Type_IIA_Adriatic                       105
+# 20 CW-Type_IIIE                               311
+# 21 CW-Type_IIIW                               305
+# 22 CW-Type_Island-W                           163
+# 23 inapplicable                              2098
+# 24 RW-R-M1                                      2
+# 25 TW-BT1                                      15
+# 26 TW-CoastalLagoonsMesohaline                 13
+# 27 TW-CoastalLagoonsOligohaline                 4
+# 28 TW-CoastalLagoonsPolyeuhaline              151
+# 29 TW-Estuaries                                66
+# 30 TW-NEA11                                   868
+# 31 NA                                        5567
+  
+# 2098 inapplicable
+# 5567 NA #same n as the 2010 assessment - check coincidence!
 dat_WDF_TRaC_BQE_type%>%filter(is.na(surfaceWaterBodyIntercalibrationTypeCode))%>%
   count()
 
-#change NA's to "inapplicable"
-dat_WDF_TRaC_BQE_type <- dat_WDF_TRaC_BQE_type %>%
-  mutate(surfaceWaterBodyIntercalibrationTypeCode = case_when(is.na (surfaceWaterBodyIntercalibrationTypeCode) ~ "inapplicable",
-                                              TRUE ~ as.character(surfaceWaterBodyIntercalibrationTypeCode)))
+#decided to keep and do not change NA's to "inapplicable"
+# dat_WDF_TRaC_BQE_type <- dat_WDF_TRaC_BQE_type %>%
+#   mutate(surfaceWaterBodyIntercalibrationTypeCode = case_when(is.na (surfaceWaterBodyIntercalibrationTypeCode) ~ "inapplicable",
+#                                               TRUE ~ as.character(surfaceWaterBodyIntercalibrationTypeCode)))
 
 ###Generate new datasets ----
 dat_WFD_TraC <- dat_WDF_TRaC_BQE_type
@@ -364,7 +402,6 @@ TRaC.overview<-print(table(dat_WFD_TraC$countryCode,dat_WFD_TraC$surfaceWaterBod
 TW.overview<-print(table(dat_WFD_TW$countryCode,dat_WFD_TW$qeCode))
 CW.overview<-print(table(dat_WFD_CW$countryCode,dat_WFD_CW$qeCode))
 
-library(openxlsx)
 write.xlsx(TRaC.overview,here("Data","TRaC-overview.xlsx"))
 write.xlsx(TW.overview,here("Data","TW-overview.xlsx"))
 write.xlsx(CW.overview,here("Data","CW-overview.xlsx"))
