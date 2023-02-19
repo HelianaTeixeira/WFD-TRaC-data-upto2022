@@ -16,6 +16,8 @@ library(tidyverse)
 ## Combine WFD TraC Supporting and Biological QE data
 
 This script joins the previously extracted water quality data (WQ from WISE-6) for selected supporting elements (SE) to the biological classifications (BQE from WISE-4 & WISE-2), for both TRaC water categories (TW & CW). 
+From WISE2, disaggregated EQR & EQS data by Year and Site was used except for EE, IE and SI for which only aggregated data by WB was available, so the later was also extracted; data for all years available until 2021.
+From WISE4, WB aggregated EQS data was available for the 1st nd 2nd reporting cycle years 2010 and 2016.
 
 ### 1. Create a list of determinand codes available per TraC water category
 
