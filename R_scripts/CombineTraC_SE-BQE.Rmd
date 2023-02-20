@@ -199,21 +199,29 @@ dat_WFD_CW_2nd_wide <- dat_WFD_CW_2nd %>%
 colnames(dat_WFD_CW_2nd_wide) <- make.names(names(dat_WFD_CW_2nd_wide)) # create valid names
 ```
 
-```{r Import WISE2 Biota nEQR / EQS classifications}
+```{r Import WISE2 Biota nEQR & EQS classifications}
 #TW
 dat_BQE_TW <- readRDS(here("Data","dat_BQE_TW.rds")) #import biology
 
 dat_BQE_TW_2nd <- dat_BQE_TW %>% #select only 2nd cycle assessments 2016
-  filter(cYear==2016) %>% 
-  filter(StartYear > 2009 |is.na(StartYear)) %>% 
+  filter(phenomenonTimeReferenceYear > 2009 |is.na(phenomenonTimeReferenceYear)) %>% 
+  filter(phenomenonTimeReferenceYear < 2016 |is.na(phenomenonTimeReferenceYear)) %>%
   ungroup()
 
-dat_BQE_TW_2nd_wide <- dat_BQE_TW_2nd %>% 
-  select(euSurfaceWaterBodyCode,countryCode,qeCode,qeStatusOrPotentialValue,naturalAWBHMWB,surfaceWaterBodyTypeCode,
-         surfaceWaterBodyIntercalibrationType,surfaceWaterBodyIntercalibrationTypeCode,cArea,cLength) %>% 
-  pivot_wider(names_from = qeCode, values_from = qeStatusOrPotentialValue)
+#LEFT HERE
+# dat_BQE_TW_2nd_wide <- dat_BQE_TW_2nd %>% 
+#   select(euSurfaceWaterBodyCode,countryCode,qeCode,qeStatusOrPotentialValue,naturalAWBHMWB,surfaceWaterBodyTypeCode,
+#          surfaceWaterBodyIntercalibrationType,surfaceWaterBodyIntercalibrationTypeCode,cArea,cLength) %>% 
+#   pivot_wider(names_from = qeCode, values_from = qeStatusOrPotentialValue)
+# 
+# colnames(dat_BQE_TW_2nd_wide) <- make.names(names(dat_BQE_TW_2nd_wide)) # create valid names
 
-colnames(dat_BQE_TW_2nd_wide) <- make.names(names(dat_BQE_TW_2nd_wide)) # create valid names
+#dat_BQE_TW_3rd <- dat_BQE_TW %>% #select only 3r cycle assessments 2022
+ # filter(phenomenonTimeReferenceYear > 2015 |is.na(phenomenonTimeReferenceYear)) %>% 
+ # filter(phenomenonTimeReferenceYear < 2022 |is.na(phenomenonTimeReferenceYear)) %>%
+ # ungroup()
+
+#repeat also for CW
 
 ```
 
