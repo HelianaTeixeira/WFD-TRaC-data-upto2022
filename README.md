@@ -18,6 +18,7 @@ This work was developed within the Water Framework Directive (WFD) Common Implem
 
 links to WFD data sources:
 
-- wise2: https://www.eea.europa.eu/data-and-maps/data/waterbase-biology-1
+- wise2: https://www.eea.europa.eu/data-and-maps/data/waterbase-biology-1 or https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_T_WISE2_BiologyEQRData 
 - wise4: https://www.eea.europa.eu/data-and-maps/data/wise-wfd-4
-- wise6: https://www.eea.europa.eu/data-and-maps/data/waterbase-water-quality-icm-2
+- wise6: https://www.eea.europa.eu/data-and-maps/data/waterbase-water-quality-icm-2 or 
+https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_T_WISE6_DisaggregatedData 
