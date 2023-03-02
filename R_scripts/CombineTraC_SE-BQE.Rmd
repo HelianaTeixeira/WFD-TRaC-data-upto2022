@@ -78,12 +78,12 @@ Determinands.s<- Determinands %>% select(observedPropertyDeterminandLabel,Det)
 WQdatTWSite <- WQdatTWSite %>% left_join(Determinands.s, by="observedPropertyDeterminandLabel") #TW
 WQdatCWSite <- WQdatCWSite %>% left_join(Determinands.s, by="observedPropertyDeterminandLabel") #CW
 
-# Filter for data 2010-2015
-WQdatTWSite.u<- WQdatTWSite %>% 
+#Filter for data 2010-2015
+WQdatTWSite.u <- WQdatTWSite %>% 
   filter(phenomenonTimeReferenceYear>2009 & phenomenonTimeReferenceYear <2016)
 Det.TW.u <- levels(factor(WQdatTWSite.u$Det)) # list available dets: 21 Dets TW
 
-WQdatCWSite.u<- WQdatCWSite %>% 
+WQdatCWSite.u <- WQdatCWSite %>% 
   filter(phenomenonTimeReferenceYear>2009 & phenomenonTimeReferenceYear <2016)
 Det.CW.u <- levels(factor(WQdatCWSite.u$Det)) # list available dets: 13 Dets CW
 
@@ -91,7 +91,7 @@ Det.CW.u <- levels(factor(WQdatCWSite.u$Det)) # list available dets: 13 Dets CW
 WQdatTWWB <- WQdatTWSite.u %>% 
     select(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom,resultMeanValue,lat,lon) %>% #waterBodyIdentifierScheme
   group_by(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom) %>% #waterBodyIdentifierScheme
-  summarise(wbMeanValue=mean(resultMeanValue),nSamples=n(),latMean=mean(lat),lonMean=mean(lon)) %>%  #nSamples is the number of sites * the number of years monitored aggregated by WB for a given Det so nSamples = 12 could be e.g. 6 sites monitored in 2 different years = 12 
+  summarise(wbMeanValue=mean(resultMeanValue),nSamples=n(),latMean=mean(lat),lonMean=mean(lon)) %>%  #nSamples is the number of sites * the number of years monitored aggregated by WB for a given Det so nSamples = 12 could be e.g. 6 sites monitored in 2 different years = 12
   ungroup()
 
 WQdatCWWB <- WQdatCWSite.u %>% 
@@ -148,9 +148,10 @@ summary(WQdatCWWB_wide)
 ```
 
 ## Plots for checking weird values
-Some P data seems to have has been reported in the wrong units (ug/L) rather than the stated (mg/L). But not sure- To check with old reports and MS.
-Focus on the paparamenters we will use for the report approach testing: TN, NO3, Secchi Depth and Dissolvved oxygen
-```{r Phosporus check plots}
+Some P data seem to have has been reported in the wrong units (ug/L) rather than the stated (mg/L). But not sure - check with old reports and with MS.
+Focus on the paramenters we discussed for use in the approach testing report: 
+TN, NO3, Secchi Depth (SD) and Dissolved Oxygen (DO).
+```{r WQ parameters check plots}
 #TW
 ggplot(WQdatTWWB_wide, aes(x=as.factor(countryCode),y=PO4P_Mn)) +
   geom_boxplot()
@@ -165,15 +166,16 @@ ggplot(WQdatCWWB_wide, aes(x=as.factor(countryCode),y=PO4P_Mn)) +
 ggplot(WQdatCWWB_wide, aes(x=as.factor(countryCode),y=TN_Mn)) +
   geom_boxplot()
 ```
+
 ### 3. Import BQE data for TraC Waters
-Data will be aggregated at Water Body level considering the years (>2009 & <2016) leading to the 2nd reporting cycle 2016
-```{r Import WISE4 Biota EQS classifications}
+First dataset - importing the WFD data for 2nd reporting cycle 2016 (only EQS categorical data at WB level).
+```{r Import WFD WISEv4 Biota EQS classifications}
 #TW
 dat_WFD_TW <- readRDS(here("Data","dat_WFD_TW.rds")) #import biology
 
 dat_WFD_TW_2nd <- dat_WFD_TW %>% #select only 2nd cycle assessments 2016
   filter(cYear==2016) %>% 
-  filter(StartYear > 2009 |is.na(StartYear)) %>% 
+  filter(StartYear > 2009 |is.na(StartYear)) %>% #n=1423 after filter applied
   ungroup()
 
 dat_WFD_TW_2nd_wide <- dat_WFD_TW_2nd %>% 
@@ -199,7 +201,8 @@ dat_WFD_CW_2nd_wide <- dat_WFD_CW_2nd %>%
 colnames(dat_WFD_CW_2nd_wide) <- make.names(names(dat_WFD_CW_2nd_wide)) # create valid names
 ```
 
-```{r Import WISE2 Biota nEQR & EQS classifications}
+Second dataset - importing the SOE WISE2 biology data (both nEQRs and EQS categorical data). Data available at site (disagg) and WB level(agg).
+```{r Import WISE2 Biology nEQR & EQS classifications}
 #TW
 dat_BQE_TW <- readRDS(here("Data","dat_BQE_TW.rds")) #import biology
 
@@ -227,12 +230,12 @@ dat_BQE_TW_2nd <- dat_BQE_TW %>% #select only 2nd cycle assessments 2016
 
 
 ### 4. Combine WQ and BQE data for TraC Waters
-Data averaged by WB.
-```{r Combine WQ and EQS classifications}
-#merge Biology and SE for TW
+WFD EQS data WB level 2016.
+```{r Combine WQ and WFD EQS classifications}
+#merge WFD Biology and SE for TW 
 BQESEdatTW_WFD2016 <- inner_join(dat_WFD_TW_2nd_wide,WQdatTWWB_wide, by = c("euSurfaceWaterBodyCode" = "waterBodyIdentifier","countryCode"))
 
-notes <- "2nd cycle (2016) WFD classification (WISE4) linked by WB to WISE6 SoE WQ data (2010-2015) averaged by WB for TW. Created in CombineTraC_SE-BQE.Rmd"
+notes <- "2nd cycle (2016) WFD classification (WFD WISEv4) linked by WB to WISE6 SoE WQ data (2010-2015) averaged by WB for TW. Created in CombineTraC_SE-BQE.Rmd"
 writeLines(notes,here("DataCreated","BQESEdatTW_WFD2016_ReadMe.txt"))
 
 #Save determinands used as xlsx workbook
@@ -243,10 +246,10 @@ writeData(wb,"data",BQESEdatTW_WFD2016,startRow = 1,startCol = 1)
 writeData(wb,"notes",notes,startRow = 1,startCol = 1)
 saveWorkbook(wb,file =here("DataCreated","BQESEdatTW_WFD2016.xlsx"),overwrite = TRUE)
 
-#merge Biology and SE for CW
+#merge Biology and SE for CW 
 BQESEdatCW_WFD2016 <- inner_join(dat_WFD_CW_2nd_wide,WQdatCWWB_wide, by = c("euSurfaceWaterBodyCode" = "waterBodyIdentifier","countryCode"))
 
-notes <- "2nd cycle (2016) WFD classification (WISE4) linked by WB to WISE6 SoE WQ data (2010-2015) averaged by WB for CW. Created in CombineTraC_SE-BQE.Rmd"
+notes <- "2nd cycle (2016) WFD classification (WFD WISEv4) linked by WB to WISE6 SoE WQ data (2010-2015) averaged by WB for CW. Created in CombineTraC_SE-BQE.Rmd"
 writeLines(notes,here("DataCreated","BQESEdatCW_WFD2016_ReadMe.txt"))
 
 #Save determinands used as xlsx workbook
@@ -255,6 +258,5 @@ addWorksheet(wb,"data")
 addWorksheet(wb, "notes")
 writeData(wb,"data",BQESEdatCW_WFD2016,startRow = 1,startCol = 1)
 writeData(wb,"notes",notes,startRow = 1,startCol = 1)
-saveWorkbook(wb,file =here("DataCreated","BQESEdatCW_WFD2016.xlsx"),overwrite = TRUE)
+saveWorkbook(wb,file = here("DataCreated","BQESEdatCW_WFD2016.xlsx"),overwrite = TRUE)
 ```
-
