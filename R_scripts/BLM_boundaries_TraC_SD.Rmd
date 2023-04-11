@@ -180,6 +180,7 @@ IC.SE_GM_MS1lo <- 4.9
 IC.SE_GM_MS1up <- 6.5
 IC.SE_GM_MS2 <- 4
 
+df <- datIC.SD.BC4 #EDIT dataset
 #scatterplot biota EQR vs SE
 #EDIT according to countries' SE GM boundaries
 p0 <- GetScatterPLot0 (df=df,colName = SE,EQRVar="NEQR") 
