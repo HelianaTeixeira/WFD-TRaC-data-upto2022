@@ -8,7 +8,7 @@ output:
 Description:
 adapted to CW and TW from FW Geoff Phillips
 Date:3 March 2023
-File name for script: BLM_boundaries_TraC.Rmd
+File name for script: BLM_boundaries_TraC_Transparency.Rmd
 
 ##  Background
 
@@ -85,8 +85,6 @@ In the example I get lake SoE data, filter for macrophyte records and use the va
 
 ```{r getData, include=TRUE}
 # Get the data
-  #Lake SoE data (WB, Year)
-  #datSoE <- readRDS(file = "O:/OneDrive/Work/Projects/2021/JRC/NutBound/Data/SoE_data/dat3L.bio.wq.rds")
 datIC <- read.csv(file = here("Databases","IC_selected_datasets.csv"),sep = ",")
 
 # Select the Type-SE-BQE data
@@ -276,20 +274,22 @@ dat.IC.mac2.NEA <- datIC.mac2 %>%
   filter(ICtype %in% c("NEA 11", "NEA 1/26")) %>%  #list options (e.g. types) to select #Geoff: CodeAggr & "type code"
   filter(!is.na(.data[[SE]])) #remove missing values
 
-#EDIT countries biota EQR G/M boundary when not NEQR
-IC.GM_MS1 <- 0.6 # EDIT: MS IC EQS boundary if not using normalised EQR
-IC.GM_MS2 <- 0.645 # add more MS if needed (and reflect in "Functions_BLM_EQR.R" to get all hlines in Fig1d)
+#EDIT countries biota EQR G/M boundary when not normalised NEQR
+IC.GM_MS1 <- 0.6 # PT.TW, NL.TW 
+IC.GM_MS2 <- 0.645 # FR.TW.CW add more MS if needed (and reflect in "Functions_BLM_EQR.R" to get all hlines in Fig1d)
+IC.GM_MS3 <- 0.61 # IE.CW
 
 #LEFT HERE
-dat.IC.mac2.NEA11 <- dat.IC.mac2.NEA11 %>%
+dat.IC.mac2.NEA <- dat.IC.mac2.NEA %>%
   mutate(BinClass=ifelse(Country == "PT" & NEQR >= 0.6,1,
-                        ifelse(Country=="NL" & NEQR>=0.6,1, 
-                                ifelse(Country=="FR" & NEQR>=0.645,1,0))))
+                        ifelse(Country=="NL" & NEQR>=0.6,1,
+                               ifelse(Country=="IE" & NEQR>=0.61,1,
+                                      ifelse(Country=="FR" & NEQR>=0.645,1,0)))))
 
 
 #EDIT: Run model and calculate measures, remember to edit line to  match dataframe name created in line above!
 # Run model and calculate measures
-out <- modBLM(df=dat.IC.mac2.NEA11 ,plt = FALSE, x=SE,y=BiotaClass,min_new.x=1,max_new.x=1,logarithm=TRUE)
+out <- modBLM(df=dat.IC.mac2.NEA ,plt = FALSE, x=SE,y=BiotaClass,min_new.x=1,max_new.x=1,logarithm=TRUE)
 
 # Split returned list into its constituent data frames
 mod.pred <- out$mod.pred
@@ -335,7 +335,7 @@ scatterplot
 # IC.SE_GM_MS1up <- 6.5
 # IC.SE_GM_MS2 <- 4
 
-df <- dat.IC.mac2.NEA11 #EDIT
+df <- dat.IC.mac2.NEA #EDIT
 
 #scatterplot biota EQR vs SE
 #EDIT according to countries' SE GM boundaries
@@ -348,6 +348,11 @@ p6
 #     annotate(geom = "text",x=IC.SE_GM_MS1lo,y=0.1,label=IC.SE_GM_MS1lo,size=3,hjust=1,colour="#F8766D")+
 #     annotate(geom = "text",x=IC.SE_GM_MS1up,y=0.1,label=IC.SE_GM_MS1up,size=3,hjust=1,colour="#F8766D")+
 #     annotate(geom = "text",x=IC.SE_GM_MS2,y=0.1,label=IC.SE_GM_MS2,size=3,hjust=1,colour="#00BFC4")
+
+p7 <- ggplot(df,aes(y=NEQR, x=SecchiDepth_m, colour=ICtype))+
+  geom_point()+
+  theme_classic()
+p7
 ```
 
 density plot
@@ -377,14 +382,14 @@ optEach %>% filter(Select==1) %>% select(df,Bound,lcl,ucl,threshold,measure,valu
 ```{r plot 4 graphs 2}
 #Plot will use output from the last model run, remember to re-run the model chunk if needed
 #NEED TO MODIFY THE NEXT 2 LINES
-df <- dat.IC.mac2.NEA11  #select data to plot
+df <- dat.IC.mac2.NEA  #select data to plot
 meas_u <- "OmisComm"  #select measure to use
 
 tsize=2  #  modify the size of text
-p7 <- GetFig1a(df=df,meas="Com0.1",colName = SE,EQRVar="NEQR",adj=0,dec=2,negResp = TRUE,jith = 0.01)
-p8 <- GetFig1b(df=df,meas="TKitMM",colName = SE,negResp = TRUE)
-p9 <- GetFig1c(df=df,meas="TKitMM",colName= SE)
-p10 <- GetFig1d(df=df,meas="TKitMM",EQRVar="NEQR",colName= SE,negResp=TRUE)
+p7 <- GetFig1a(df=df,meas=meas_u,colName = SE,EQRVar="NEQR",adj=0,dec=2,negResp = TRUE,jith = 0.01)
+p8 <- GetFig1b(df=df,meas=meas_u,colName = SE,negResp = TRUE)
+p9 <- GetFig1c(df=df,meas=meas_u,colName= SE)
+p10 <- GetFig1d(df=df,meas=meas_u,EQRVar="NEQR",colName= SE,negResp=TRUE)
 grid.arrange(p7,p8,p9,p10,ncol=2,nrow=2)
 
 ```
@@ -401,7 +406,7 @@ Examples showing the NEA11 data type
 
 ```{r}
 # set z to any categorical variable name in the data set
-pGLM_z(df=dat.IC.mac2.NEA11,x=SE,z="countryCode") #EDIT z= "" as needed
+pGLM_z(df=dat.IC.mac2.NEA,x=SE,z="ICtype") #EDIT z= "" as needed
 ```
 
 
@@ -409,7 +414,7 @@ pGLM_z(df=dat.IC.mac2.NEA11,x=SE,z="countryCode") #EDIT z= "" as needed
 
 ```{r}
 # set z to any categorical variable name in the data set
-pGLM_z_Alls(df=dat.IC.mac2.NEA11,x=SE,z="countryCode") # function with #EDIT z= "" as needed
+pGLM_z_Alls(df=dat.IC.mac2.NEA,x=SE,z="ICtype") # function with #EDIT z= "" as needed
 ```
 
 
