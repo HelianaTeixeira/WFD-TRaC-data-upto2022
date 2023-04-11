@@ -522,8 +522,9 @@ pGLM_z_Alls <- function(df,x=colName,y="NEQR",lab=xlabel,z=NULL){
 
 # HT: function to produce scatter plot biota EQR vs SE
 GetScatterPLot0 <- function(df,colName,EQRVar, dec=1){
-  df <- df %>% filter(!is.na(NEQR)) %>%  # remove missing NEQR
-    filter(eval(as.name(SE))>0)  #remove 0 values for SE to avoid error when using log transform
+  df <- df %>% 
+    filter(!is.na(NEQR)) %>%  # remove missing NEQR
+    filter(eval(as.name(SE))>0) #remove 0 values for SE to avoid error when using log transform
   
   ggplot(df,aes(y=eval(as.name(EQRVar)),x=eval(as.name(colName)), colour=Country))+
     geom_point()+
@@ -564,6 +565,7 @@ GetDensityPLot0 <- function(df,colName,EQSVar, dec=1){
 GetScatterPLot <- function(df,meas,colName,EQRVar, dec=1){
   df <- df %>% filter(!is.na(NEQR)) %>%  # remove missing NEQR
     filter(eval(as.name(SE))>0)  #remove 0 values for SE to avoid error when using log transform
+  
   #get predicted SE boundaries 
   #get critical probability threshold (p_u) specified by meas from data frame optEach 
   p_u <- optEach[optEach$measure==meas,"threshold"]
