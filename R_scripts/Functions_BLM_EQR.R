@@ -328,8 +328,9 @@ bp.EQR <- function(df,cat,DepVar,colName){
     geom_boxplot(varwidth = TRUE)+
     scale_x_discrete(limits=rev,labels = str_wrap(c("Good or better","Moderate or worse"),10))+
     #geom_hline(yintercept = 0.6,lty=2)+
-    geom_hline(yintercept = IC.GM_MS1,lty=2)+
+    geom_hline(yintercept = IC.GM_MS1,lty=2)+#EDIT
     geom_hline(yintercept = IC.GM_MS2,lty=2)+
+    geom_hline(yintercept = IC.GM_MS3,lty=2)+
     geom_vline(xintercept = 1.5)+
     labs(y="biota EQR",x=paste(colName,"class"))+
     theme_classic()
@@ -340,8 +341,9 @@ bp.EQRRev <- function(df,cat,DepVar,colName){
     geom_boxplot(varwidth = TRUE)+
     scale_x_discrete(labels = str_wrap(c("Moderate or worse","Good or better"),10))+
     #geom_hline(yintercept = 0.6,lty=2)+
-    geom_hline(yintercept = IC.GM_MS1,lty=2)+
+    geom_hline(yintercept = IC.GM_MS1,lty=2)+#EDIT
     geom_hline(yintercept = IC.GM_MS2,lty=2)+
+    geom_hline(yintercept = IC.GM_MS3,lty=2)+
     geom_vline(xintercept = 1.5)+
     labs(y="biota EQR",x=paste(colName,"class"))+
     theme_classic()
@@ -534,10 +536,12 @@ GetScatterPLot0 <- function(df,colName,EQRVar, dec=1){
     geom_point()+
     geom_hline(yintercept = IC.GM_MS1,lty=2, colour="#F8766D")+
     geom_hline(yintercept = IC.GM_MS2,lty=2, colour="#00BFC4")+
+    geom_hline(yintercept = IC.GM_MS3,lty=2, colour="#CD9600")+
     theme_classic(base_size = 12)+
     labs(y="biota EQR", x=xlabel)+
     annotate(geom = "text",y=IC.GM_MS1,x=0.1,label=IC.GM_MS1,size=3,vjust=1, colour="#F8766D")+
-    annotate(geom = "text",y=IC.GM_MS2,x=0.1,label=IC.GM_MS2,size=3,vjust=0, colour="#00BFC4")
+    annotate(geom = "text",y=IC.GM_MS2,x=0.1,label=IC.GM_MS2,size=3,vjust=0, colour="#00BFC4")+
+    annotate(geom = "text",y=IC.GM_MS3,x=0.1,label=IC.GM_MS3,size=3,vjust=0, colour="#CD9600")
 }
 #HT: density plot
 GetDensityPLot0 <- function(df,colName,EQSVar, dec=1){
@@ -588,10 +592,12 @@ GetScatterPLot <- function(df,meas,colName,EQRVar, dec=1){
     geom_vline(xintercept = UCLBound_u,lty=2)+
     geom_hline(yintercept = IC.GM_MS1,lty=2, colour="#F8766D")+
     geom_hline(yintercept = IC.GM_MS2,lty=2, colour="#00BFC4")+
+    geom_hline(yintercept = IC.GM_MS3,lty=2, colour="#CD9600")+
     theme_classic(base_size = 12)+
     labs(y="biota EQR", x=xlabel)+
     annotate(geom = "text",y=IC.GM_MS1,x=0.1,label=IC.GM_MS1,size=3,vjust=1, colour="#F8766D")+
     annotate(geom = "text",y=IC.GM_MS2,x=0.1,label=IC.GM_MS2,size=3,vjust=0, colour="#00BFC4")+
+    annotate(geom = "text",y=IC.GM_MS3,x=0.1,label=IC.GM_MS3,size=3,vjust=0, colour="#CD9600")+
     annotate(geom = "text",x=bound_u,y=0.05,label=bound_u,size=3)+
     annotate(geom = "text",x=LCLBound_u,y=0.1,label=LCLBound_u,size=3,hjust=1)+
     annotate(geom = "text",x=UCLBound_u,y=0.1,label=UCLBound_u,size=3,hjust=0)
