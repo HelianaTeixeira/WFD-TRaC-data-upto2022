@@ -328,9 +328,6 @@ bp.EQR <- function(df,cat,DepVar,colName){
     geom_boxplot(varwidth = TRUE)+
     scale_x_discrete(limits=rev,labels = str_wrap(c("Good or better","Moderate or worse"),10))+
     #geom_hline(yintercept = 0.6,lty=2)+
-    geom_hline(yintercept = IC.GM_MS1,lty=2)+#EDIT
-    geom_hline(yintercept = IC.GM_MS2,lty=2)+
-    geom_hline(yintercept = IC.GM_MS3,lty=2)+
     geom_vline(xintercept = 1.5)+
     labs(y="biota EQR",x=paste(colName,"class"))+
     theme_classic()
@@ -341,9 +338,6 @@ bp.EQRRev <- function(df,cat,DepVar,colName){
     geom_boxplot(varwidth = TRUE)+
     scale_x_discrete(labels = str_wrap(c("Moderate or worse","Good or better"),10))+
     #geom_hline(yintercept = 0.6,lty=2)+
-    geom_hline(yintercept = IC.GM_MS1,lty=2)+#EDIT
-    geom_hline(yintercept = IC.GM_MS2,lty=2)+
-    geom_hline(yintercept = IC.GM_MS3,lty=2)+
     geom_vline(xintercept = 1.5)+
     labs(y="biota EQR",x=paste(colName,"class"))+
     theme_classic()
@@ -507,7 +501,7 @@ pGLM_z <- function(df,x=colName,y="NEQR",lab=xlabel,z="countryCode"){
   ggplot(df,aes(y=eval(as.name(y)),x=eval(as.name(x)),colour=eval(as.name(z))))+
     geom_point()+
     scale_x_log10()+
-    geom_hline(yintercept = 0.6,lty=2)+
+    #geom_hline(yintercept = 0.6,lty=2)+ #EDIT re-activate if NEQR
     theme_classic(base_size = 12)+
     labs(y="biota EQR", x=lab,colour=z)
 }
@@ -521,28 +515,22 @@ pGLM_z_Alls <- function(df,x=colName,y="NEQR",lab=xlabel,z=NULL){
     geom_point()+
     scale_x_log10()+
     geom_smooth(data=df,aes(y=eval(as.name(y)),x=eval(as.name(x))),inherit.aes = FALSE,method = "glm", method.args = list(family = "binomial"),formula=y~x)+
-    geom_hline(yintercept = 0.6,lty=2)+
+    #geom_hline(yintercept = 0.6,lty=2)+ #EDIT re-activate if NEQR
     theme_classic(base_size = 12)+
     labs(y="biota EQR", x=lab,colour=z)
 }
 
 # HT: function to produce scatter plot biota EQR vs SE
-#EDIT according to number of countries/MS
 GetScatterPLot0 <- function(df,colName,EQRVar, dec=1){
   df <- df %>% filter(!is.na(NEQR)) %>%  # remove missing NEQR
     filter(eval(as.name(SE))>0)  #remove 0 values for SE to avoid error when using log transform
   
   ggplot(df,aes(y=eval(as.name(EQRVar)),x=eval(as.name(colName)), colour=Country))+
     geom_point()+
-    geom_hline(yintercept = IC.GM_MS1,lty=2, colour="#F8766D")+
-    geom_hline(yintercept = IC.GM_MS2,lty=2, colour="#00BFC4")+
-    geom_hline(yintercept = IC.GM_MS3,lty=2, colour="#CD9600")+
     theme_classic(base_size = 12)+
-    labs(y="biota EQR", x=xlabel)+
-    annotate(geom = "text",y=IC.GM_MS1,x=0.1,label=IC.GM_MS1,size=3,vjust=1, colour="#F8766D")+
-    annotate(geom = "text",y=IC.GM_MS2,x=0.1,label=IC.GM_MS2,size=3,vjust=0, colour="#00BFC4")+
-    annotate(geom = "text",y=IC.GM_MS3,x=0.1,label=IC.GM_MS3,size=3,vjust=0, colour="#CD9600")
+    labs(y="biota EQR", x=xlabel)
 }
+
 #HT: density plot
 GetDensityPLot0 <- function(df,colName,EQSVar, dec=1){
   df <- df %>% filter(!is.na(NEQR)) #%>%  # remove missing NEQR
@@ -550,7 +538,6 @@ GetDensityPLot0 <- function(df,colName,EQSVar, dec=1){
   
   densP<-ggplot(df,aes(x=eval(as.name(colName)), group=eval(as.name(EQSVar))))+
     geom_density(aes(fill=eval(as.name(EQSVar))),alpha=0.4)+ 
-    scale_fill_brewer(palette="Dark2")+
     theme_classic(base_size = 12)+
     scale_y_continuous (limits=c(0,1))+
     labs(y="proportion sites", x=xlabel)+
@@ -574,7 +561,6 @@ GetDensityPLot0 <- function(df,colName,EQSVar, dec=1){
 }
 
 # HT: function to produce scatter plot biota EQR vs SE predicted boundaries
-#EDIT according to number of countries/MS
 GetScatterPLot <- function(df,meas,colName,EQRVar, dec=1){
   df <- df %>% filter(!is.na(NEQR)) %>%  # remove missing NEQR
     filter(eval(as.name(SE))>0)  #remove 0 values for SE to avoid error when using log transform
@@ -590,15 +576,9 @@ GetScatterPLot <- function(df,meas,colName,EQRVar, dec=1){
     geom_vline(xintercept = bound_u)+
     geom_vline(xintercept = LCLBound_u,lty=2)+
     geom_vline(xintercept = UCLBound_u,lty=2)+
-    geom_hline(yintercept = IC.GM_MS1,lty=2, colour="#F8766D")+
-    geom_hline(yintercept = IC.GM_MS2,lty=2, colour="#00BFC4")+
-    geom_hline(yintercept = IC.GM_MS3,lty=2, colour="#CD9600")+
     theme_classic(base_size = 12)+
     labs(y="biota EQR", x=xlabel)+
-    annotate(geom = "text",y=IC.GM_MS1,x=0.1,label=IC.GM_MS1,size=3,vjust=1, colour="#F8766D")+
-    annotate(geom = "text",y=IC.GM_MS2,x=0.1,label=IC.GM_MS2,size=3,vjust=0, colour="#00BFC4")+
-    annotate(geom = "text",y=IC.GM_MS3,x=0.1,label=IC.GM_MS3,size=3,vjust=0, colour="#CD9600")+
     annotate(geom = "text",x=bound_u,y=0.05,label=bound_u,size=3)+
     annotate(geom = "text",x=LCLBound_u,y=0.1,label=LCLBound_u,size=3,hjust=1)+
     annotate(geom = "text",x=UCLBound_u,y=0.1,label=UCLBound_u,size=3,hjust=0)
-         }
+}
