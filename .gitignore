@@ -6,6 +6,9 @@
 *.sqlite
 /Databases/
 
+# Output files
+/Figures/
+
 # Session Data files
 .RData
 
