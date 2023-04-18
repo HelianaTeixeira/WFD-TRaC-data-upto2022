@@ -187,7 +187,11 @@ df <- datIC.SS.NEA11
 
 #scatterplot biota EQR vs SE
 p0 <- GetScatterPLot0 (df=df,colName = SE,EQRVar="NEQR") 
-p0
+p0 +
+  geom_hline(yintercept = IC.GM_MS1,lty=2, colour="black")+
+  geom_hline(yintercept = IC.GM_MS2,lty=2, colour="grey")+
+  annotate(geom = "text",y=IC.GM_MS1,x=0.1,label=IC.GM_MS1,size=3,vjust=1, colour="black")+
+  annotate(geom = "text",y=IC.GM_MS2,x=0.1,label=IC.GM_MS2,size=3,vjust=0, colour="grey")
 #EDIT below as needed according to countries' SE GM boundaries
   # + geom_vline(xintercept = IC.SE_GM_MS1lo,colour="#F8766D")+
   # geom_vline(xintercept = IC.SE_GM_MS1up,colour="#F8766D")+

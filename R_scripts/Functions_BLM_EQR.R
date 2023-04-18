@@ -540,7 +540,7 @@ GetDensityPLot0 <- function(df,colName,EQSVar, dec=1){
   densP<-ggplot(df,aes(x=eval(as.name(colName)), group=eval(as.name(EQSVar))))+
     geom_density(aes(fill=eval(as.name(EQSVar))),alpha=0.4)+ 
     theme_classic(base_size = 12)+
-    scale_y_continuous (limits=c(0,1))+
+    #scale_y_continuous (limits=c(0,1))+
     labs(y="proportion sites", x=xlabel)+
     scale_fill_discrete(name='Biota Status',labels=c("Moderate or worse", "Good or better"))+
     scale_color_discrete(name='Biota Status',labels=c("Moderate or worse", "Good or better"))

@@ -441,7 +441,7 @@ Examples showing the NEA11 data type
 
 ```{r}
 # set z to any categorical variable name in the data set
-pGLM_z(df=dat.IC.mac2.NEA,x=SE,z="ICtype") #EDIT z= "" as needed
+pGLM_z(df=datIC.SD.NEA,x=SE,z="ICtype") #EDIT z= "" as needed
 ```
 
 
@@ -449,7 +449,7 @@ pGLM_z(df=dat.IC.mac2.NEA,x=SE,z="ICtype") #EDIT z= "" as needed
 
 ```{r}
 # set z to any categorical variable name in the data set
-pGLM_z_Alls(df=dat.IC.mac2.NEA,x=SE,z="ICtype") # function with #EDIT z= "" as needed
+pGLM_z_Alls(df=datIC.SD.NEA,x=SE,z="ICtype") # function with #EDIT z= "" as needed
 ```
 
 
