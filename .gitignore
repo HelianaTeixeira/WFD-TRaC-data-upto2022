@@ -4,11 +4,6 @@
 
 # Large database files
 *.sqlite
-/Databases/
-
-# Output files
-*.html
-/Figures/
 
 # Session Data files
 .RData
