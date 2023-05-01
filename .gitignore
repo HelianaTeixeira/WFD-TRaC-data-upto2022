@@ -6,10 +6,10 @@
 *.sqlite
 /Databases/
 
- # Output files
- *.html
- /Figures/
- 
+# Output files
+*.html
+/Figures/
+
 # Session Data files
 .RData
 
