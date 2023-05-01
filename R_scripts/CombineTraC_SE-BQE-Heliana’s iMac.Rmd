@@ -1,0 +1,262 @@
+---
+title: "CombineTraC_SE-BQE"
+author: "HT"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(here)
+library(openxlsx)
+library(tidyverse)
+```
+
+## Combine WFD TraC Supporting and Biological QE data
+
+This script joins the previously extracted water quality data (WQ from WISE-6) for selected supporting elements (SE) to the biological classifications (BQE from WISE-4 & WISE-2), for both TRaC water categories (TW & CW). 
+
+* From WISE2, disaggregated EQR & EQS data by Year and Site was used except for EE, IE and SI for which only aggregated data by WB was available, so the later was also extracted; data for all years available until 2021.
+* From WISE4, WB aggregated EQS data was available for the 1st nd 2nd reporting cycle years 2010 and 2016.
+
+### 1. Create a list of determinand codes available per TraC water category
+
+```{r Dets}
+#Create a list of determinand codes of interest
+observedPropertyDeterminandCode <- c("EEA_3131-01-9","CAS_14797-55-8","EEA_3152-01-0","CAS_14797-65-0",
+             "CAS_14798-03-9","CAS_14265-44-2","EEA_3132-01-2","EEA_3164-01-0",
+             "EEA_3111-01-1","EEA_3141-01-3","EEA_31615-01-7","EEA_31-02-7",
+             "CAS_7723-14-0","EEA_3133-05-9","EEA_3133-06-0","CAS_16887-00-6",
+             "CAS_7664-41-7","EEA_3133-01-5","EEA_3112-01-4","EEA_3161-02-2",
+             "EEA_31613-01-1","EEA_31-03-8","EEA_3161-05-5","EEA_3161-03-3")
+
+observedPropertyDeterminandLabel <- c("Oxygen saturation","Nitrate","pH","Nitrite",
+                                      "Ammonium","Phosphate","Dissolved oxygen",
+                                      "Chlorophyll a","Secchi depth","Salinity",
+                                      "Total nitrogen","Total suspended solids",
+                                      "Total phosphorus","Dissolved organic carbon (DOC)",
+                                      "Total organic carbon (TOC)","Chloride",
+                                      "Ammonia","BOD5","Turbidity","Total oxidised nitrogen",
+                                      "Non-ionised ammonia","Total dissolved solids",
+                                      "Total inorganic nitrogen","Total organic nitrogen")
+# add an abbreviated name for convenience
+Det <- c("DOpc","NO3","pH","NO2","NH4","PO4P","DO","CHLA","SD","SAL","TN","SS","TP","DOC",
+         "TOC","Cl","NH3","BOD5","TURB","TON","NH3UI","TDS","TIN","TON")
+
+resultUom <- c("%","mg{NO3}/L","[pH]","mg{NO2}/L","mg{NH4}/L","mg{P}/L","mg/L",
+               "ug/L","m","{PSU}","mg{N}/L", "mg/L","mg{P}/L","mg{C}/L","mg{C}/L",
+               "mg/L","ug/L","mg{O2}/L","{NTU}","mg{N}/L","mg{NH3}/L","mg/L",
+               "mg{N}/L","mg{N}/L")
+
+# create data frame and rename columns
+Determinands <- data.frame(observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom)
+
+#Save determinands used as rds file
+saveRDS(Determinands,file = here("Data","Determinands_TRaC.rds")) #TRaC WQ sites
+notes <- "Determinands extracted in extractWFDdata_WISE6_SE for TRaC waters."
+writeLines(notes,here("Data","ReadMe_Determinands.txt"))
+
+#Save determinands used as xlsx workbook
+wb <- createWorkbook()
+addWorksheet(wb,"dets")
+addWorksheet(wb, "notes")
+writeData(wb,"dets",Determinands,startRow = 1,startCol = 1)
+writeData(wb,"notes",notes,startRow = 1,startCol = 1)
+saveWorkbook(wb,file =here("Data","Determinands.xlsx"),overwrite = TRUE)
+```
+
+### 2. Import water quality data from the WISE6 for Supporting Elements available for TraC Waters
+Data will be summarised at Water Body level considering the years (>2009 & <2016) leading to the 2nd reporting cycle 2016
+```{r get TraC WQ data}
+#import the SE WQ data for TRaC
+WQdatTWSite <- readRDS(file = here("Data","dat_WQ_TW.rds")) #TW
+WQdatCWSite <- readRDS(file = here("Data","dat_WQ_CW.rds")) #CW
+
+#add Determinands short names in Det
+Determinands.s<- Determinands %>% select(observedPropertyDeterminandLabel,Det)
+WQdatTWSite <- WQdatTWSite %>% left_join(Determinands.s, by="observedPropertyDeterminandLabel") #TW
+WQdatCWSite <- WQdatCWSite %>% left_join(Determinands.s, by="observedPropertyDeterminandLabel") #CW
+
+#Filter for data 2010-2015
+WQdatTWSite.u <- WQdatTWSite %>% 
+  filter(phenomenonTimeReferenceYear>2009 & phenomenonTimeReferenceYear <2016)
+Det.TW.u <- levels(factor(WQdatTWSite.u$Det)) # list available dets: 21 Dets TW
+
+WQdatCWSite.u <- WQdatCWSite %>% 
+  filter(phenomenonTimeReferenceYear>2009 & phenomenonTimeReferenceYear <2016)
+Det.CW.u <- levels(factor(WQdatCWSite.u$Det)) # list available dets: 13 Dets CW
+
+#summarise the data at Waterbody by averaging years
+WQdatTWWB <- WQdatTWSite.u %>% 
+    select(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom,resultMeanValue,lat,lon) %>% #waterBodyIdentifierScheme
+  group_by(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom) %>% #waterBodyIdentifierScheme
+  summarise(wbMeanValue=mean(resultMeanValue),nSamples=n(),latMean=mean(lat),lonMean=mean(lon)) %>%  #nSamples is the number of sites * the number of years monitored aggregated by WB for a given Det so nSamples = 12 could be e.g. 6 sites monitored in 2 different years = 12
+  ungroup()
+
+WQdatCWWB <- WQdatCWSite.u %>% 
+    select(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom,resultMeanValue,lat,lon) %>% #waterBodyIdentifierScheme
+  group_by(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom) %>% #waterBodyIdentifierScheme
+  summarise(wbMeanValue=mean(resultMeanValue),nSamples=n(),latMean=mean(lat),lonMean=mean(lon)) %>%  #nSamples is the number of sites * the number of years monitored aggregated by WB for a given Det so nSamples = 12 could be e.g. 6 sites monitored in 2 different years = 12 
+ ungroup()
+```
+
+Overview of countries reporting for each Det for the period 2010-2015:
+
+```{r WQ data overview country reporting per Det}
+#TW
+WQdatTWWB %>% 
+  select(Det,countryCode) %>% 
+  group_by(Det,countryCode)%>%
+  summarise (n())%>%
+   ungroup()
+#CW
+WQdatCWWB %>% 
+  select(Det,countryCode) %>% 
+  group_by(Det,countryCode)%>%
+  summarise (n())%>%
+   ungroup()
+
+```
+
+```{r Wide WQ data}
+#TW
+WQdatTWWB_wide <- WQdatTWWB %>% 
+# could add a filter to select data with different number of years contributing to mean  
+  select(-observedPropertyDeterminandCode,-observedPropertyDeterminandLabel,-resultUom,-nSamples,-latMean,-lonMean) %>% 
+  pivot_wider(names_from = Det, values_from = wbMeanValue )  %>% 
+  rename_with(~paste0(.x,"_Mn"),all_of(Det.TW.u))
+
+# change units of P data
+WQdatTWWB_wide <- WQdatTWWB_wide%>%
+  mutate(TP_Mn = TP_Mn * 1000, PO4P_Mn = PO4P_Mn * 1000)
+
+summary(WQdatTWWB_wide)
+
+#CW
+WQdatCWWB_wide <- WQdatCWWB %>% 
+# could add a filter to select data with different number of years contributing to mean  
+  select(-observedPropertyDeterminandCode,-observedPropertyDeterminandLabel,-resultUom,-nSamples,-latMean,-lonMean) %>% 
+  pivot_wider(names_from = Det, values_from = wbMeanValue )  %>% 
+  rename_with(~paste0(.x,"_Mn"),all_of(Det.CW.u))
+
+# change units of P data
+WQdatCWWB_wide <- WQdatCWWB_wide%>%
+  mutate(TP_Mn = TP_Mn * 1000, PO4P_Mn = PO4P_Mn * 1000)
+
+summary(WQdatCWWB_wide)
+```
+
+## Plots for checking weird values
+Some P data seem to have has been reported in the wrong units (ug/L) rather than the stated (mg/L). But not sure - check with old reports and with MS.
+Focus on the paramenters we discussed for use in the approach testing report: 
+TN, NO3, Secchi Depth (SD) and Dissolved Oxygen (DO).
+```{r WQ parameters check plots}
+#TW
+ggplot(WQdatTWWB_wide, aes(x=as.factor(countryCode),y=PO4P_Mn)) +
+  geom_boxplot()
+
+ggplot(WQdatTWWB_wide, aes(x=as.factor(countryCode),y=SD_Mn)) +
+  geom_boxplot()
+
+#CW
+ggplot(WQdatCWWB_wide, aes(x=as.factor(countryCode),y=PO4P_Mn)) +
+  geom_boxplot()
+
+ggplot(WQdatCWWB_wide, aes(x=as.factor(countryCode),y=TN_Mn)) +
+  geom_boxplot()
+```
+
+### 3. Import BQE data for TraC Waters
+First dataset - importing the WFD data for 2nd reporting cycle 2016 (only EQS categorical data at WB level).
+```{r Import WFD WISEv4 Biota EQS classifications}
+#TW
+dat_WFD_TW <- readRDS(here("Data","dat_WFD_TW.rds")) #import biology
+
+dat_WFD_TW_2nd <- dat_WFD_TW %>% #select only 2nd cycle assessments 2016
+  filter(cYear==2016) %>% 
+  filter(StartYear > 2009 |is.na(StartYear)) %>% #n=1423 after filter applied
+  ungroup()
+
+dat_WFD_TW_2nd_wide <- dat_WFD_TW_2nd %>% 
+  select(euSurfaceWaterBodyCode,countryCode,qeCode,qeStatusOrPotentialValue,naturalAWBHMWB,surfaceWaterBodyTypeCode,
+         surfaceWaterBodyIntercalibrationType,surfaceWaterBodyIntercalibrationTypeCode,cArea,cLength) %>% 
+  pivot_wider(names_from = qeCode, values_from = qeStatusOrPotentialValue)
+
+colnames(dat_WFD_TW_2nd_wide) <- make.names(names(dat_WFD_TW_2nd_wide)) # create valid names
+
+#CW
+dat_WFD_CW <- readRDS(here("Data","dat_WFD_CW.rds")) #import biology
+
+dat_WFD_CW_2nd <- dat_WFD_CW %>% #select only 2nd cycle assessments 2016
+  filter(cYear==2016) %>% 
+  filter(StartYear > 2009 |is.na(StartYear)) %>% 
+  ungroup()
+
+dat_WFD_CW_2nd_wide <- dat_WFD_CW_2nd %>% 
+  select(euSurfaceWaterBodyCode,countryCode,qeCode,qeStatusOrPotentialValue,naturalAWBHMWB,surfaceWaterBodyTypeCode,
+         surfaceWaterBodyIntercalibrationType,surfaceWaterBodyIntercalibrationTypeCode,cArea,cLength) %>% 
+  pivot_wider(names_from = qeCode, values_from = qeStatusOrPotentialValue)
+
+colnames(dat_WFD_CW_2nd_wide) <- make.names(names(dat_WFD_CW_2nd_wide)) # create valid names
+```
+
+Second dataset - importing the SOE WISE2 biology data (both nEQRs and EQS categorical data). Data available at site (disagg) and WB level(agg).
+```{r Import WISE2 Biology nEQR & EQS classifications}
+#TW
+dat_BQE_TW <- readRDS(here("Data","dat_BQE_TW.rds")) #import biology
+
+dat_BQE_TW_2nd <- dat_BQE_TW %>% #select only 2nd cycle assessments 2016
+  filter(phenomenonTimeReferenceYear > 2009 |is.na(phenomenonTimeReferenceYear)) %>% 
+  filter(phenomenonTimeReferenceYear < 2016 |is.na(phenomenonTimeReferenceYear)) %>%
+  ungroup()
+
+#LEFT HERE
+# dat_BQE_TW_2nd_wide <- dat_BQE_TW_2nd %>% 
+#   select(euSurfaceWaterBodyCode,countryCode,qeCode,qeStatusOrPotentialValue,naturalAWBHMWB,surfaceWaterBodyTypeCode,
+#          surfaceWaterBodyIntercalibrationType,surfaceWaterBodyIntercalibrationTypeCode,cArea,cLength) %>% 
+#   pivot_wider(names_from = qeCode, values_from = qeStatusOrPotentialValue)
+# 
+# colnames(dat_BQE_TW_2nd_wide) <- make.names(names(dat_BQE_TW_2nd_wide)) # create valid names
+
+#dat_BQE_TW_3rd <- dat_BQE_TW %>% #select only 3r cycle assessments 2022
+ # filter(phenomenonTimeReferenceYear > 2015 |is.na(phenomenonTimeReferenceYear)) %>% 
+ # filter(phenomenonTimeReferenceYear < 2022 |is.na(phenomenonTimeReferenceYear)) %>%
+ # ungroup()
+
+#repeat also for CW
+
+```
+
+
+### 4. Combine WQ and BQE data for TraC Waters
+WFD EQS data WB level 2016.
+```{r Combine WQ and WFD EQS classifications}
+#merge WFD Biology and SE for TW 
+BQESEdatTW_WFD2016 <- inner_join(dat_WFD_TW_2nd_wide,WQdatTWWB_wide, by = c("euSurfaceWaterBodyCode" = "waterBodyIdentifier","countryCode"))
+
+notes <- "2nd cycle (2016) WFD classification (WFD WISEv4) linked by WB to WISE6 SoE WQ data (2010-2015) averaged by WB for TW. Created in CombineTraC_SE-BQE.Rmd"
+writeLines(notes,here("DataCreated","BQESEdatTW_WFD2016_ReadMe.txt"))
+
+#Save determinands used as xlsx workbook
+wb <- createWorkbook()
+addWorksheet(wb,"data")
+addWorksheet(wb, "notes")
+writeData(wb,"data",BQESEdatTW_WFD2016,startRow = 1,startCol = 1)
+writeData(wb,"notes",notes,startRow = 1,startCol = 1)
+saveWorkbook(wb,file =here("DataCreated","BQESEdatTW_WFD2016.xlsx"),overwrite = TRUE)
+
+#merge Biology and SE for CW 
+BQESEdatCW_WFD2016 <- inner_join(dat_WFD_CW_2nd_wide,WQdatCWWB_wide, by = c("euSurfaceWaterBodyCode" = "waterBodyIdentifier","countryCode"))
+
+notes <- "2nd cycle (2016) WFD classification (WFD WISEv4) linked by WB to WISE6 SoE WQ data (2010-2015) averaged by WB for CW. Created in CombineTraC_SE-BQE.Rmd"
+writeLines(notes,here("DataCreated","BQESEdatCW_WFD2016_ReadMe.txt"))
+
+#Save determinands used as xlsx workbook
+wb <- createWorkbook()
+addWorksheet(wb,"data")
+addWorksheet(wb, "notes")
+writeData(wb,"data",BQESEdatCW_WFD2016,startRow = 1,startCol = 1)
+writeData(wb,"notes",notes,startRow = 1,startCol = 1)
+saveWorkbook(wb,file = here("DataCreated","BQESEdatCW_WFD2016.xlsx"),overwrite = TRUE)
+```

@@ -1,0 +1,27 @@
+ICcode.TRAC;ICType
+CW-BC1;Baltic Sea, surface water salinity 0.5-6 psu, bottom water salinity 1-6 psu, Exposed, 90-150 ice days
+CW-BC1-A;Baltic Sea, surface water salinity 0.5-6 psu, bottom water salinity 1-6 psu, Exposed, 90-150 ice days
+CW-BC1-B;Baltic Sea, surface water salinity 0.5-6 psu, bottom water salinity 1-6 psu, Exposed, 90-150 ice days
+CW-BC3;Baltic Sea, surface water salinity 3-6 psu, bottom water salinity 3-6 psu, Sheltered, 90-150 ice days
+CW-BC4;Baltic Sea, surface water salinity 5-8 psu, bottom water salinity 5-8 psu, Exposed, < 90 ice days
+CW-BC5;Baltic Sea, surface water salinity 6-8 psu, bottom water salinity 6-12 psu, Exposed, <90 ice days
+CW-BC6;Baltic Sea, surface water salinity 8-12 psu, bottom water salinity 8-12 psu, Sheltered, <90 ice days
+CW-BC7;Baltic Sea, surface water salinity 6-8 psu, bottom water salinity 8-11 psu, Exposed, <90 ice days
+CW-BC9;Baltic Sea, surface water salinity 3-6 psu, bottom water salinity 3-6 psu, Moderately Exposed to exposed, 90-150 ice days
+CW-BL1;Black Sea, mesohaline, microtidal, shallow, moderately exposed, mixed substratum
+CW-NEA1/26;North East Atlantic, open oceanic or enclosed seas, exposed or sheltered, euhaline, shallow (< 30 m), microtidal or mesotidal, fully mixed or partly stratified
+CW-NEA10;Skagerrak Outer Arc Type, polyhaline, microtidal, exposed, deep
+CW-NEA7;North East Atlantic, deep fjordic and sea loch systems
+CW-NEA8a;North East Atlantic, Skagerrak Inner Arc Type, polyhaline (25-30), microtidal, moderately exposed, shallow, fully mixed
+CW-NEA8b;North East Atlantic, Skagerrak Inner Arc Type, polyhaline (10-30), microtidal, moderately sheltered, shallow, partly stratified
+CW-NEA9;North East Atlantic, fjord with a shallow sill at the mouth with very deep maximum depth in the central basin with poor deepwater exchange
+CW-Type_IIA;Mediterranean Sea, moderately influenced by freshwater input (continent influence)
+CW-Type_IIA_Adriatic;Mediterranean Adriatic coast, moderately influenced by freshwater input (continent influence), Adriatic coast
+CW-Type_IIIE;Mediterranean (Eastern Basin), not affected by freshwater input 
+CW-Type_IIIW;Mediterranean (Western Basin), continental coast, not influenced by freshwater input 
+CW-Type_Island-W;Mediterranean (Western Basin), island coast
+inapplicable;inapplicable
+TW-BT1;Baltic Sea, transitional waters, salinity surface 0-8 psu bottom 0-0 psu, very sheltered
+TW-CoastalLagoonsPolyeuhaline;Mediterranean Sea, Coastal Lagoons, polyeuhaline salinity 18-40 psu
+TW-Estuaries;Mediterranean Sea, Estuaries, salt wedge type
+TW-NEA11;North East Atlantic, transitional waters
