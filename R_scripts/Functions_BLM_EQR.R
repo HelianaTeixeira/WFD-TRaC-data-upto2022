@@ -326,11 +326,13 @@ bp.SE <- function(df,bound,colName,ylabel="biota class"){
 bp.EQR <- function(df,cat,DepVar,colName){
   ggplot(df,aes(y=!!DepVar,x=factor(cat)))+
     geom_boxplot(varwidth = TRUE)+
+    geom_jitter(aes(colour=df$Country), position = position_jitter(0.2), cex= 0.5)+ # OPTIONAL to add points of EQR of  the different countries when not nEQR
     scale_x_discrete(limits=rev,labels = str_wrap(c("Good or better","Moderate or worse"),10))+
     #geom_hline(yintercept = 0.6,lty=2)+
     geom_vline(xintercept = 1.5)+
     labs(y="biota EQR",x=paste(colName,"class"))+
-    theme_classic()
+    theme_classic()+
+    guides(colour = "none")
 }
 # with reversed x axis for negative pressure response
 bp.EQRRev <- function(df,cat,DepVar,colName){
