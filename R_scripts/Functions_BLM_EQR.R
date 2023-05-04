@@ -320,13 +320,13 @@ bp.SE <- function(df,bound,colName,ylabel="biota class"){
 #' @param cat       categorical x variable
 #' @param DepVar    dependent variable
 #' @param colName   name of column (used for label of axis)
+#' @param cat2      categorical x additional variable (to split by country for not normalised EQR)
 #'
 #' @return          a plot
 
-bp.EQR <- function(df,cat,DepVar,colName){
+bp.EQR <- function(df,cat,DepVar,cat2,colName){
   ggplot(df,aes(y=!!DepVar,x=factor(cat)))+
-    geom_boxplot(varwidth = TRUE)+
-    geom_jitter(aes(colour=df$Country), position = position_jitter(0.2), cex= 0.5)+ # OPTIONAL to add points of EQR of  the different countries when not nEQR
+    geom_boxplot(aes(colour=cat2),varwidth = TRUE)+
     scale_x_discrete(limits=rev,labels = str_wrap(c("Good or better","Moderate or worse"),10))+
     #geom_hline(yintercept = 0.6,lty=2)+
     geom_vline(xintercept = 1.5)+
@@ -335,14 +335,15 @@ bp.EQR <- function(df,cat,DepVar,colName){
     guides(colour = "none")
 }
 # with reversed x axis for negative pressure response
-bp.EQRRev <- function(df,cat,DepVar,colName){
+bp.EQRRev <- function(df,cat,DepVar,cat2,colName){
   ggplot(df,aes(y=!!DepVar,x=factor(cat)))+
-    geom_boxplot(varwidth = TRUE)+
+    geom_boxplot(aes(colour=cat2), varwidth = TRUE)+
     scale_x_discrete(labels = str_wrap(c("Moderate or worse","Good or better"),10))+
     #geom_hline(yintercept = 0.6,lty=2)+
     geom_vline(xintercept = 1.5)+
     labs(y="biota EQR",x=paste(colName,"class"))+
-    theme_classic()
+    theme_classic()+
+    guides(colour = "none")
 }
 #----------------------------------------------------------------------------
 
@@ -477,7 +478,7 @@ GetFig1c <- function(df,meas,colName,EQRVar="NEQR",adj=0,dec=2){
 #' @return
 #'
 #' @examples
-GetFig1d <- function(df,meas,colName,EQRVar="NEQR",adj=0,dec=2,negResp=FALSE){
+GetFig1d <- function(df,meas,cat2,colName,EQRVar="NEQR",adj=0,dec=2,negResp=FALSE){
   p_u <- optEach[optEach$measure==meas,"threshold"]
   bound_u <- round(optEach[optEach$measure==meas,"Bound"],dec)
   DepVar <- sym(EQRVar)# 
@@ -488,11 +489,11 @@ GetFig1d <- function(df,meas,colName,EQRVar="NEQR",adj=0,dec=2,negResp=FALSE){
   if(negResp==FALSE){
     df <- df  %>% 
       mutate(Class_u=ifelse(df[[colName]]<bound_u,1,0)) #classify using predicted bound
-    bp.EQR(df,df$Class_u,DepVar,colName)
+    bp.EQR(df,df$Class_u,DepVar,cat2,colName)
   } else {
     df <- df  %>%  
       mutate(Class_u=ifelse(df[[colName]]<bound_u,0,1)) #classify using predicted bound
-    bp.EQRRev(df,df$Class_u,DepVar,colName)
+    bp.EQRRev(df,df$Class_u,DepVar,cat2,colName)
   } 
 }  
 
