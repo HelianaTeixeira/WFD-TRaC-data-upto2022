@@ -82,6 +82,13 @@ The binary class of the biota (default name is *BinClass*, but other variable na
 
 In the example I get lake SoE data, filter for macrophyte records and use the variable *resultNormalisedEQRValue*  to convert to *BinClass*.  I also convert the EQR variable name to *NEQR* as this is used in my standard plot functions
 
+```{r final results table}
+# Create 2 data frames that can be used to hold the results from different subsets of the data
+optEach_all <- data.frame()
+BLMsum_all <- data.frame()
+```
+
+
 ```{r getData, include=TRUE}
 # Get the data
 datIC <- read.csv(file = here("Databases","IC_selected_datasets.csv"),sep = ",") #EDIT file name / path
@@ -95,11 +102,7 @@ datIC.TP <- datIC %>%
   rename(BinClass=EQS)%>%
   rename(NEQR=EQR) #EDIT optional: but needs change also in functions be aware!, here kept NEQR even if not normalised in this IC dataset
 
-# Create 2 data frames that can be used to hold the results from different subsets of the data
-optEach_all <- data.frame()
-BLMsum_all <- data.frame()
 ```
-
 
 ##  Select subset of data and run the model
 
@@ -419,6 +422,19 @@ datBC4.TP <- datBC4 %>%
                             EQS=="High" | EQS == "Good" ~ 1)) %>%
   rename(NEQR=EQR_Chla) #EDIT optional: but needs change also in functions be aware!, here kept NEQR even if not normalised in this IC dataset
 
+#TP is in µmol/l:
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.3400  0.6812  0.8028  0.8248  0.9425  1.5800 
+
+#Convert TP concentrations to µg/l
+# conversion: 1 µg P/l = 1/MW P = 0.032285 µmol/l
+
+datBC4.TP<- datBC4.TP %>%
+  mutate(TP=TP/0.032285)
+
+#Checking conversion
+ # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ #  10.53   21.10   24.87   25.55   29.19   48.94 
 
 ```
 
@@ -539,6 +555,310 @@ p17+
   annotate(geom = "text",y=IC.GM_MS1,x=0.1,label=IC.GM_MS1,size=3,vjust=1, colour="#F8766D")+
   annotate(geom = "text",y=IC.GM_MS2,x=0.1,label=IC.GM_MS2,size=3,vjust=0, colour="#00BFC4")
 ```
+
+
+
+
+We can now repeat with another Type (change the name of the chunk if copying from above)
+
+### CW type TypeIIA Adriatic 
+
+To run on a different type, first select the data and then change the name of the data set when running the function (line with *modBLM* in chunk runModel#? below)
+
+```{r Get data for TypeIIA Adriatic}
+# Get the data
+datIIAAdriatic <- read.csv(file = here("Databases","IC_TypeIIAAdriatic_Nut_Phyto.csv"),sep = ",") #EDIT file name / path
+
+# Select the data for SE
+datIIAAdriatic.TP <- datIIAAdriatic %>% 
+  select (Wcategory,GIG,Type,Country,Region,Date,Total_Phosphorus,Chla,EQR_Chla,EQS)%>% #EDIT: SE variable name
+  filter(Region != "Abruzzo") %>% #drop samples from Abbruzzo following reported no trend (2018 report)
+  filter(!is.na(Total_Phosphorus)) %>% #EDIT: SE variable name
+  #mutate(BinClass=ifelse(NEQR>=0.6,1,0)) #use this line instead when normalised EQR
+  rename(TP=Total_Phosphorus)%>%
+  mutate(BQE="Phytoplankton")%>%
+  mutate(BinClass=case_when(EQS=="not Good" ~ 0,
+                            EQS=="High" | EQS == "Good" ~ 1)) %>%
+  rename(NEQR=EQR_Chla) #EDIT optional: but needs change also in functions be aware!, here kept NEQR even if not normalised in this IC dataset
+
+#TP is in µmol/l:
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#  0.0300  0.2400  0.5490  0.7801  1.2335  6.3800 
+
+#Convert TP concentrations to µg/l
+# conversion: 1 µg P/l = 1/MW P = 0.032285 µmol/l
+
+datIIAAdriatic.TP <- datIIAAdriatic.TP %>%
+  mutate(TP=TP/0.032285)
+
+#Checking conversion
+ # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ #  0.9292   7.4338  17.0048  24.1635  38.2066 197.6150 
+
+```
+
+
+```{r runModel4}
+#EDIT: Select the data subset
+datIIAAdriatic.TP <- datIIAAdriatic.TP %>% 
+  filter(!is.na(.data[[SE]])) #remove missing values
+
+#EDIT: NEED TO MODIFY THE NEXT LINE to select appropriate data frame
+df <- datIIAAdriatic.TP
+
+#EDIT: countries IC biota EQR G/M boundary when not using normalised NEQR
+IC.GM_MS1 <- 0.61 # EDIT ID country: IT
+#IC.GM_MS2 <- 0.67 # EDIT ID country: LT
+#add more MS if needed (in that case reflect in "Functions_BLM_EQR.R" to get all hlines in Fig1d)
+
+#Run model and calculate measures
+out <- modBLM(df=df,plt = FALSE, x=SE,y=BiotaClass,min_new.x=1,max_new.x=1,logarithm=TRUE)
+
+# Split returned list into its constituent data frames
+mod.pred <- out$mod.pred
+allMeasures <- out$allMeasures
+
+# Add additional variables
+optEach <- out$optEach
+optEach$lcl <- sapply(optEach$threshold,GetLCL)#lower confidence limit
+optEach$ucl <- sapply(optEach$threshold,GetUCL)#upper confidence limit
+optEach$commission <- sapply(optEach$threshold,GetCom)# commission value
+optEach$omission <- sapply(optEach$threshold,GetOmi)# omission value
+optEach$kappa <- sapply(optEach$threshold,GetKap)# kappa value
+optEach$df <- out$df # name of data set used (for reference)
+optEach <- optEach %>% filter(measure %in% measure_used) %>%  arrange(threshold)# filter measures and sort by ascending order of  p threshold
+
+# run function to select the most appropriate threshold. Note in this script I include all the thresholds generated by modEva, plus the toolkit mis-match method.  This generates a longer list and it could be reduced by filtering the measures included in the optEach object that is passed to the function identifyThreshold()
+optEach <- IdentifyThreshold()
+
+#Collect the measures that are not threshold dependent.
+BLMsum<- data.frame(out$df,out$pseudo.r2,out$Auc,out$Prev)
+names(BLMsum) <- c("df","pseudo.r2","Auc","Prev")
+
+# add the resulting model and boundary data to a summary file
+optEach_all <- rbind(optEach_all,optEach)
+BLMsum_all <- rbind(BLMsum_all,BLMsum)
+
+# remove duplicate records, caused by running the chunk several times in error
+optEach_all <- unique(optEach_all) 
+BLMsum_all <- unique(BLMsum_all)
+
+```
+
+#### Inspect the results
+
+scatterplot
+```{r scatterplot SE vs BQE 4}
+#scatterplot biota EQR vs SE
+p12 <- GetScatterPLot0 (df=df,colName = SE,EQRVar="NEQR") 
+p12 +
+  geom_hline(yintercept = IC.GM_MS1,lty=2, colour="black")+
+  #geom_hline(yintercept = IC.GM_MS2,lty=2, colour="#00BFC4")+
+  annotate(geom = "text",y=IC.GM_MS1,x=0.1,label=IC.GM_MS1,size=3,vjust=1, colour="black")
+  #+annotate(geom = "text",y=IC.GM_MS2,x=0.1,label=IC.GM_MS2,size=3,vjust=0, colour="#00BFC4")
+```
+
+density plot
+```{r biota EQS vs SE density plot 4}
+df$BinClass <- as.factor(df$BinClass)
+p12d <- GetDensityPLot0 (df=df,colName = SE,EQSVar="BinClass")
+p12d
+```
+
+
+####  The boundary selected using current criteria
+
+```{r measures thresholds 4}
+#list the points to mark on plot
+meas <- c("CCR","kappa","TKitMM","Com0.2","OmisComm","Com0.1")
+ pMeas()
+```
+
+```{r threshold selection 4}
+optEach  %>% select(Select,df,Bound,lcl,ucl,threshold,measure,value,commission,omission,kappa)
+```
+
+```{r  boundary selected 4}
+optEach %>% filter(Select==1) %>% select(df,Bound,lcl,ucl,threshold,measure,value,omission,commission,kappa)
+```
+
+```{r plot 4 graphs 4}
+#Plot will use output from the last model run, remember to re-run the model chunk if needed
+#EDIT: NEED TO MODIFY THE NEXT LINE to select appropriate data frame
+df <- datIIAAdriatic.TP #select data to plot
+
+# select the boundary to be plotted i.e. the appropriate measure. 
+meas_u <- optEach[optEach$Select==1,"measure"]  # use  measure selected by function
+#meas_u <- "Com0.2"  #EDIT To plot a different measure use this line
+
+tsize=2  #modify the size of text
+
+p13 <- GetFig1a(df=df,meas=meas_u,colName = SE,EQRVar="NEQR",adj=0,dec=1,negResp = FALSE,jith=0)
+p14 <- GetFig1b(df=df,meas=meas_u,colName = SE,negResp = FALSE) #EDIT: "TRUE" or "FALSE"
+p15 <- GetFig1c(df=df,meas=meas_u,colName= SE)
+p16 <- GetFig1d(df=df,meas=meas_u,EQRVar="NEQR",cat2=df$Country,colName= SE,negResp=FALSE)+#EDIT cat2 as suitable for dataset
+  geom_hline(yintercept = IC.GM_MS1,lty=2, colour="black")+
+  #geom_hline(yintercept = IC.GM_MS2,lty=2, colour="#00BFC4")+
+  annotate(geom = "text",y=IC.GM_MS1,x=0.5,label=IC.GM_MS1,size=3,vjust=1, colour="black")
+  #annotate(geom = "text",y=IC.GM_MS2,x=0.5,label=IC.GM_MS2,size=3,vjust=0, colour="#00BFC4")
+
+grid.arrange(p13,p14,p15,p16,ncol=2,nrow=2)
+```
+
+```{r scatterplot biota EQR vs SE predicted bound 4}
+#scatterplot biota EQR vs SE
+p17 <- GetScatterPLot(df=df,meas=meas_u,colName = SE,EQRVar="NEQR") 
+p17+
+  geom_hline(yintercept = IC.GM_MS1,lty=2, colour="grey")+
+  #geom_hline(yintercept = IC.GM_MS2,lty=2, colour="#00BFC4")+
+  annotate(geom = "text",y=IC.GM_MS1,x=0.1,label=IC.GM_MS1,size=3,vjust=1, colour="black")
+  #annotate(geom = "text",y=IC.GM_MS2,x=0.1,label=IC.GM_MS2,size=3,vjust=0, colour="#00BFC4")
+```
+
+
+We can now repeat with another Type (change the name of the chunk if copying from above)
+
+### TW types BT1 
+To run on a different type, first select the data and then change the name of the data set when running the function (line with *modBLM* in chunk runModel#? below)
+```{r get data BT1}
+# Get the data
+datBT1 <- read.csv(file = here("Databases","IC_BT1_NutTP-TN_Phyto.csv"),sep = ",") #EDIT file name / path
+
+# Select the data for SE
+datBT1.TP <- datBT1 %>% 
+  select (Wcategory,GIG,Type,COUNTRY,Year,TP,CHLa,EQR,EQS)%>% #EDIT: SE variable name
+  filter(!is.na(TP)) %>% #EDIT: SE variable name
+  filter(!is.na(EQR)) %>% #EDIT: EQR variable name
+  #mutate(BinClass=ifelse(NEQR>=0.6,1,0)) #use this line instead when normalised EQR
+  rename(Country=COUNTRY)%>%
+  mutate(BQE="Phytoplankton")%>%
+  mutate(BinClass=case_when(EQS=="Bad" |EQS=="Moderate"|EQS =="Poor" ~ 0,
+                            EQS=="High" | EQS == "Good" ~ 1)) %>%
+  rename(NEQR=EQR) #EDIT optional: but needs change also in functions be aware!, here kept NEQR even if not normalised in this IC dataset
+
+```
+
+
+```{r runModel5}
+#EDIT: Select the data subset
+datBT1.TP <- datBT1.TP %>% 
+  filter(!is.na(.data[[SE]])) #remove missing values
+
+#EDIT: NEED TO MODIFY THE NEXT LINE to select appropriate data frame
+df <- datBT1.TP
+
+#EDIT: countries IC biota EQR G/M boundary when not using normalised NEQR
+IC.GM_MS1 <- 0.57 # EDIT ID country: LT
+IC.GM_MS2 <- 0.61 # EDIT ID country: PL
+#add more MS if needed (in that case reflect in "Functions_BLM_EQR.R" to get all hlines in Fig1d)
+
+#Run model and calculate measures
+out <- modBLM(df=df,plt = FALSE, x=SE,y=BiotaClass,min_new.x=1,max_new.x=1,logarithm=TRUE)
+
+# Split returned list into its constituent data frames
+mod.pred <- out$mod.pred
+allMeasures <- out$allMeasures
+
+# Add additional variables
+optEach <- out$optEach
+optEach$lcl <- sapply(optEach$threshold,GetLCL)#lower confidence limit
+optEach$ucl <- sapply(optEach$threshold,GetUCL)#upper confidence limit
+optEach$commission <- sapply(optEach$threshold,GetCom)# commission value
+optEach$omission <- sapply(optEach$threshold,GetOmi)# omission value
+optEach$kappa <- sapply(optEach$threshold,GetKap)# kappa value
+optEach$df <- out$df # name of data set used (for reference)
+optEach <- optEach %>% filter(measure %in% measure_used) %>%  arrange(threshold)# filter measures and sort by ascending order of  p threshold
+
+# run function to select the most appropriate threshold. Note in this script I include all the thresholds generated by modEva, plus the toolkit mis-match method.  This generates a longer list and it could be reduced by filtering the measures included in the optEach object that is passed to the function identifyThreshold()
+optEach <- IdentifyThreshold()
+
+#Collect the measures that are not threshold dependent.
+BLMsum<- data.frame(out$df,out$pseudo.r2,out$Auc,out$Prev)
+names(BLMsum) <- c("df","pseudo.r2","Auc","Prev")
+
+# add the resulting model and boundary data to a summary file
+optEach_all <- rbind(optEach_all,optEach)
+BLMsum_all <- rbind(BLMsum_all,BLMsum)
+
+# remove duplicate records, caused by running the chunk several times in error
+optEach_all <- unique(optEach_all) 
+BLMsum_all <- unique(BLMsum_all)
+
+```
+
+#### Inspect the results
+
+scatterplot
+```{r scatterplot SE vs BQE 5}
+#scatterplot biota EQR vs SE
+p18 <- GetScatterPLot0 (df=df,colName = SE,EQRVar="NEQR") 
+p18 +
+  geom_hline(yintercept = IC.GM_MS1,lty=2, colour="#F8766D")+
+  geom_hline(yintercept = IC.GM_MS2,lty=2, colour="#00BFC4")+
+  annotate(geom = "text",y=IC.GM_MS1,x=0.1,label=IC.GM_MS1,size=3,vjust=1, colour="#F8766D")+
+  annotate(geom = "text",y=IC.GM_MS2,x=0.1,label=IC.GM_MS2,size=3,vjust=0, colour="#00BFC4")
+```
+
+density plot
+```{r biota EQS vs SE density plot 5}
+df$BinClass <- as.factor(df$BinClass)
+p18d <- GetDensityPLot0 (df=df,colName = SE,EQSVar="BinClass")
+p18d
+```
+
+
+####  The boundary selected using current criteria
+
+```{r measures thresholds 5}
+#list the points to mark on plot
+meas <- c("CCR","kappa","TKitMM","Com0.2","OmisComm","Com0.1")
+ pMeas()
+```
+
+```{r threshold selection 5}
+optEach  %>% select(Select,df,Bound,lcl,ucl,threshold,measure,value,commission,omission,kappa)
+```
+
+```{r  boundary selected 5}
+optEach %>% filter(Select==1) %>% select(df,Bound,lcl,ucl,threshold,measure,value,omission,commission,kappa)
+```
+
+```{r plot 4 graphs 5}
+#Plot will use output from the last model run, remember to re-run the model chunk if needed
+#EDIT: NEED TO MODIFY THE NEXT LINE to select appropriate data frame
+df <- datBT1.TP #select data to plot
+
+# select the boundary to be plotted i.e. the appropriate measure. 
+meas_u <- optEach[optEach$Select==1,"measure"]  # use  measure selected by function
+#meas_u <- "Com0.2"  #EDIT To plot a different measure use this line
+
+tsize=2  #modify the size of text
+
+p19 <- GetFig1a(df=df,meas=meas_u,colName = SE,EQRVar="NEQR",adj=0,dec=1,negResp = FALSE,jith=0)
+p20 <- GetFig1b(df=df,meas=meas_u,colName = SE,negResp = FALSE) #EDIT: "TRUE" or "FALSE"
+p21 <- GetFig1c(df=df,meas=meas_u,colName= SE)
+p22 <- GetFig1d(df=df,meas=meas_u,EQRVar="NEQR",cat2=df$Country,colName= SE,negResp=FALSE)+#EDIT cat2 as suitable for dataset
+  geom_hline(yintercept = IC.GM_MS1,lty=2, colour="#F8766D")+
+  geom_hline(yintercept = IC.GM_MS2,lty=2, colour="#00BFC4")+
+  annotate(geom = "text",y=IC.GM_MS1,x=0.5,label=IC.GM_MS1,size=3,vjust=1, colour="#F8766D")+
+  annotate(geom = "text",y=IC.GM_MS2,x=0.5,label=IC.GM_MS2,size=3,vjust=0, colour="#00BFC4")
+
+grid.arrange(p19,p20,p21,p22,ncol=2,nrow=2)
+```
+
+```{r scatterplot biota EQR vs SE predicted bound 5}
+#scatterplot biota EQR vs SE
+p23 <- GetScatterPLot(df=df,meas=meas_u,colName = SE,EQRVar="NEQR") 
+p23+
+  geom_hline(yintercept = IC.GM_MS1,lty=2, colour="#F8766D")+
+  geom_hline(yintercept = IC.GM_MS2,lty=2, colour="#00BFC4")+
+  annotate(geom = "text",y=IC.GM_MS1,x=0.1,label=IC.GM_MS1,size=3,vjust=1, colour="#F8766D")+
+  annotate(geom = "text",y=IC.GM_MS2,x=0.1,label=IC.GM_MS2,size=3,vjust=0, colour="#00BFC4")
+```
+
+
+
+
 
 
 
