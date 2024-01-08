@@ -28,7 +28,7 @@ note: for the third WFD reporting cycle, WISE4 has been superseded by WISE-6 for
 1st - EXTRACT DATA: the scripts WFD-TRaC-data-upto2022/R_scripts/"extract___.R" were used to extract data from each of the data sources above indicated; extracting data for TW and CW water categories selecting variables of interest and merging information from different tables (e.g. status classification and respective samples typology information). More details in each file, including of corrections performed  
 2nd - COMBINE BIOLOGY & SE DATA: the script WFD-TRaC-data-upto2022/R_scripts/"CombineTraC_SE-BQE.Rmd" was used to merge nutrient and other physico-chemical information to biological data using samples code. More details within the file, including of corrections performed.
 
-Overall, separate datasets were created (WFD-TRaC-data-upto2022/DataCreated) for each water category (TW & CW) in each WFD reporting cycle: 2010 (1st cycle), 2016 (2nd cycle) and a few data already available for the 3rd cycle (2022):
+Overall, separate datasets were created (WFD-TRaC-data-upto2022/DataCreated) for each water category (TW & CW) in each WFD reporting cycle: 2010 (1st cycle), 2016 (2nd cycle) and 2022 for the data already available for the 3rd cycle:
 1. BQESEdatTW_WFD2010.xlsx - TW 2010 to be added
 2. BQESEdatCW_WFD2010.xlsx - CW 2010 to be added
 3. BQESEdatTW_WFD2016.xlsx (n=) for all BQE in all available MS reporting
