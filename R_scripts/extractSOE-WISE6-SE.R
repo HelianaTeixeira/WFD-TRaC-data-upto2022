@@ -1,12 +1,13 @@
 # Extract tables from EEA WISE SOE SQLite database
 # version: Waterbase WISE6 WQ ICM v2021
 # author: Heliana Teixeira
-# date: 14.12.2022
+# date created: 14.12.2022
 
 #Description
 #This script assembles a set of TRAC WQ summary metrics for an appropriate set of supporting elements, 
 #taken from the EEA state of the environment WISE 6 data set 
-#downloaded from https://www.eea.europa.eu/data-and-maps/data/waterbase-water-quality-icm-2 ; version 2021 available online from 11th May 2022.
+#downloaded from https://www.eea.europa.eu/data-and-maps/data/waterbase-water-quality-icm-2
+#version 2021 available online from 11th May 2022.
 #disaggregated data
 
 #load packages

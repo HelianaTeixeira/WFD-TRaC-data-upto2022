@@ -1,7 +1,7 @@
 # Extract tables from EEA WISE WFD SQLite database
 # version: WISE SOW v01_r04 
 # author: Heliana Teixeira
-# date: 19.09.2022
+# date created: 19.09.2022
 
 #Description of dataset
 #1st dataset: Extracting biology data from the EEA Water Framework Directive Database (WISE_WFD)
