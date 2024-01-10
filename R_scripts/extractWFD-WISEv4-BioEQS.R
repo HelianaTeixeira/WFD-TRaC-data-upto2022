@@ -241,6 +241,7 @@ WDF_TRaC_SE <-WDF_TRaC %>%
     # cYear   n
     # 2010   8446
     # 2016   52320
+    # 60766 observations in total with both 2010 and 2016 data (from 1st and 2nd RBMPs)
 
 ### Get waterbody WB information----
 SWB <- lDataFrames[[29]] %>% #"SOW_SWB_SurfaceWaterBody" 
@@ -278,6 +279,9 @@ SWB %>%
 ## merge BQE (n=13090, 21 var) with WB national info
 dat_WDF_TRaC_BQE <- left_join(WDF_TRaC_BQE,SWB,by = c("cYear","countryCode","euSurfaceWaterBodyCode","surfaceWaterBodyCategory"))
 
+## merge SE (n=60766, 20 var) with WB national info
+dat_WDF_TRaC_SE <- left_join(WDF_TRaC_SE,SWB,by = c("cYear","countryCode","euSurfaceWaterBodyCode","surfaceWaterBodyCategory"))
+
 ### Get WB intercalibration Typology information----
 SWB_IC <- lDataFrames[[21]] %>% #"SOW_SWB_SWB_surfaceWaterBodyIntercalibrationType" 
   select(cYear,countryCode,euSurfaceWaterBodyCode,surfaceWaterBodyCategory,
@@ -311,6 +315,10 @@ dat_WDF_TRaC_BQE%>%
   unique()%>%
   count() # 13090 unique ids
 
+dat_WDF_TRaC_SE%>%
+  select(id)%>%
+  unique()%>%
+  count() # 60766 unique ids
 
 ## merge BQE (n=13090, 22 var) with IC Type info
 dat_WDF_TRaC_BQE_type <- left_join(dat_WDF_TRaC_BQE,SWB_IC,by=c("cYear","countryCode","euSurfaceWaterBodyCode","surfaceWaterBodyCategory"))
@@ -358,12 +366,31 @@ dat_WDF_TRaC_BQE_type %>% filter(id==1962447)
 
 dat_WDF_TRaC_BQE_type$Created <- (Sys.Date()) # add date of creation, 25 variables
 
-#IC Typology count (id inapplicable)
-types_count <- dat_WDF_TRaC_BQE_type%>%
-  group_by(surfaceWaterBodyIntercalibrationTypeCode)%>%
-  count()
+## merge SE (n=60766, 21 var) with IC Type info
+dat_WDF_TRaC_SE_type <- left_join(dat_WDF_TRaC_SE,SWB_IC,by=c("cYear","countryCode","euSurfaceWaterBodyCode","surfaceWaterBodyCategory"))
+# final obs in dataset (n=60790, 23 var)
 
-write.xlsx(types_count,here("Data","ICtypesTRaC_withEQS_WISE4.xlsx"))
+#check for the 24 duplicates
+dat_WDF_TRaC_SE_type %>%
+  group_by(id) %>%
+  filter(n()>1) %>%
+  summarize(n=n())
+
+  #duplicates are Polish data as in BQE data, see one example below
+  dat_WDF_TRaC_SE_type %>% filter(id==1788981)
+
+#IC Typology count (id inapplicable)
+types_count_BQE <- dat_WDF_TRaC_BQE_type%>%
+  group_by(surfaceWaterBodyIntercalibrationTypeCode)%>%
+  count() #31
+
+types_count_SE <- dat_WDF_TRaC_SE_type%>%
+  group_by(surfaceWaterBodyIntercalibrationTypeCode)%>%
+  count()%>%
+  print(n = 32)#32
+
+write.xlsx(types_count_BQE,here("Data","ICtypesTRaC_withEQS_WISE4.xlsx"))
+write.xlsx(types_count_SE,here("Data","ICtypesTRaC_withSE_WISE4.xlsx"))
 
 # # A tibble: 31 × 2
 # # Groups:   surfaceWaterBodyIntercalibrationTypeCode [31]
@@ -407,19 +434,64 @@ dat_WDF_TRaC_BQE_type%>%filter(is.na(surfaceWaterBodyIntercalibrationTypeCode))%
   count()
 #keep NA's and do not change to "inapplicable" for control of original input
 
+#for SE
+# surfaceWaterBodyIntercalibrationTypeCode     n
+# <chr>                                    <int>
+#   1 CW-BC1                                    2792
+# 2 CW-BC3                                     336
+# 3 CW-BC4                                      32
+# 4 CW-BC5                                      56
+# 5 CW-BC6                                     584
+# 6 CW-BC7                                      80
+# 7 CW-BC8                                     152
+# 8 CW-BC9                                    1624
+# 9 CW-BL1                                      88
+# 10 CW-NEA1/26                                8280
+# 11 CW-NEA10                                   288
+# 12 CW-NEA3/4                                  152
+# 13 CW-NEA7                                  10304
+# 14 CW-NEA8a                                   640
+# 15 CW-NEA8b                                   448
+# 16 CW-NEA9                                   1104
+# 17 CW-Type_I                                  120
+# 18 CW-Type_IIA                                536
+# 19 CW-Type_IIA_Adriatic                       592
+# 20 CW-Type_IIIE                              2200
+# 21 CW-Type_IIIW                              4064
+# 22 CW-Type_Island-W                           352
+# 23 RW-R-M1                                      8
+# 24 RW-R-M4                                      8
+# 25 TW-BT1                                      56
+# 26 TW-CoastalLagoonsMesohaline                160
+# 27 TW-CoastalLagoonsOligohaline               144
+# 28 TW-CoastalLagoonsPolyeuhaline              768
+# 29 TW-Estuaries                               248
+# 30 TW-NEA11                                  3944
+# 31 inapplicable                             12160
+# 32 NA                                        8470
+
 ###Generate new datasets ----
+#for BQE
 dat_WFD_TraC <- dat_WDF_TRaC_BQE_type
 dat_WFD_TW <- dat_WDF_TRaC_BQE_type %>% filter(surfaceWaterBodyCategory=="TW")
 dat_WFD_CW <- dat_WDF_TRaC_BQE_type %>% filter(surfaceWaterBodyCategory=="CW")
+#forSE
+dat_WFD_TraC_SE <- dat_WDF_TRaC_SE_type
 
 TRaC.overview<-print(table(dat_WFD_TraC$countryCode,dat_WFD_TraC$surfaceWaterBodyCategory))
 TW.overview<-print(table(dat_WFD_TW$countryCode,dat_WFD_TW$qeCode))
 CW.overview<-print(table(dat_WFD_CW$countryCode,dat_WFD_CW$qeCode))
 
+TRaC.SE.overview <-print(table(dat_WFD_TraC_SE$countryCode,dat_WFD_TraC_SE$surfaceWaterBodyCategory))
+#some unpopulated from Uk correct as in BQE
+TRaC.SE.overview_code <-print(table(dat_WFD_TraC_SE$countryCode,dat_WFD_TraC_SE$qeCode))
+
 write.xlsx(TRaC.overview,here("Data","TRaC-overview.xlsx"))
 write.xlsx(TW.overview,here("Data","TW-overview.xlsx"))
 write.xlsx(CW.overview,here("Data","CW-overview.xlsx"))
+write.xlsx(TRaC.SE.overview_code,here("Data","TRaC-SE-overview.xlsx"))
 
 saveRDS(dat_WFD_TraC,file = here("Data","dat_WFD_TraC.rds"))
 saveRDS(dat_WFD_TW,file = here("Data","dat_WFD_TW.rds"))
 saveRDS(dat_WFD_CW,file = here("Data","dat_WFD_CW.rds"))
+saveRDS(dat_WFD_TraC_SE,file = here("Data","dat_WFD_TraC_SE.rds"))
