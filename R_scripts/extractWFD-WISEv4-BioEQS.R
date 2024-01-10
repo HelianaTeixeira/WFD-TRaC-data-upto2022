@@ -224,6 +224,24 @@ WDF_TRaC_BQE %>%
 #confirm WC
 levels(factor(WDF_TRaC_BQE$surfaceWaterBodyCategory)) #CW TW
 
+#checking also SE data in WISE4 (start with QE3; not extracted) 
+WDF_TRaC_SE <-WDF_TRaC %>%
+  filter(grepl("QE3",qeCode)) # check available SE quality elements   
+
+    levels(as.factor(WDF_TRaC_SE$qeCode))
+    # [1] "QE3-1 - General parameters"              "QE3-1-1 - Transparency conditions"      
+    # [3] "QE3-1-2 - Thermal conditions"            "QE3-1-3 - Oxygenation conditions"       
+    # [5] "QE3-1-4 - Salinity conditions"           "QE3-1-5 - Acidification status"         
+    # [7] "QE3-1-6-1 - Nitrogen conditions"         "QE3-1-6-2 - Phosphorus conditions"      
+    # [9] "QE3-3 - River Basin Specific Pollutants"
+    
+    WDF_TRaC_SE %>%
+      group_by(cYear)%>%
+      count()
+    # cYear   n
+    # 2010   8446
+    # 2016   52320
+
 ### Get waterbody WB information----
 SWB <- lDataFrames[[29]] %>% #"SOW_SWB_SurfaceWaterBody" 
   select(cYear,countryCode,euSurfaceWaterBodyCode,surfaceWaterBodyCategory,surfaceWaterBodyName)
