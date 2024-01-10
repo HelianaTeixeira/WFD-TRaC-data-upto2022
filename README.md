@@ -25,7 +25,7 @@ https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_T_WISE6_Disag
 note: for the third WFD reporting cycle, WISE4 has been superseded by WISE-6 for Water quality, and by WISE-2 for Biology.
 
 ## Procedure for data extraction
-1st EXTRACT DATA: the scripts WFD-TRaC-data-upto2022/R_scripts/"extract___.R" were used to extract data from each of the data sources above indicated for TW and CW water categories, selecting variables of interest and merging information from different tables (e.g. status classification and respective samples typology information). More details in each file, including of corrections performed.  
+1st EXTRACT DATA: the scripts WFD-TRaC-data-upto2022/R_scripts/"extract___.R" were used to extract data from each of the data sources above indicated for TW and CW water categories, selecting variables of interest and merging information from different tables (e.g. status classification and respective samples typology information). More details in each file, including of corrections performed. (scripts require download of the databases or adjustments to access them online)  
 
 2nd COMBINE BIOLOGY & SE DATA: the script WFD-TRaC-data-upto2022/R_scripts/"CombineTraC_SE-BQE.Rmd" was used to merge extracted water quality data (WQ from WISE-6) for selected supporting elements (SE, i.e. nutrients and other physico-chemical parameters) to the biological classifications (BQE from WISE-4 & WISE-2), for both TRaC water categories (TW & CW), using samples' code. More details within the file, including of corrections performed.
 
