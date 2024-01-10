@@ -3,7 +3,7 @@
 
 ## WFD-TRaC-data-upto2022
 Assembling Water Quality data from: 
-* WISE4 (identifier: eea_wise-wfd_s) WFD Biological Quality Elements (EQS) (2000 to 2020; incl. 2010 and 2016);
+* WISE4 (identifier: eea_wise-wfd_s) WFD Biological Quality Elements (EQS) (WFD 1st 2010 & 2nd 2016 cycles; TraC data span 2000 to 2018; note: SE info also available in WISE4);
 * WISE2 (identifier: eea_waterbase-biology_s) EEA Waterbase – Biology (normalised EQR) (1990 to 2022);
 * WISE6 (identifier: eea_waterbase-water-quality-icm_s) WFD Water Quality Supporting Elements (1899 to 2022).
 
