@@ -472,26 +472,27 @@ dat_WDF_TRaC_BQE_type%>%filter(is.na(surfaceWaterBodyIntercalibrationTypeCode))%
 
 ###Generate new datasets ----
 #for BQE
-dat_WFD_TraC <- dat_WDF_TRaC_BQE_type
-dat_WFD_TW <- dat_WDF_TRaC_BQE_type %>% filter(surfaceWaterBodyCategory=="TW")
-dat_WFD_CW <- dat_WDF_TRaC_BQE_type %>% filter(surfaceWaterBodyCategory=="CW")
-#forSE
-dat_WFD_TraC_SE <- dat_WDF_TRaC_SE_type
+dat_W4_TraC_BQE <- dat_WDF_TRaC_BQE_type
+dat_W4_TW_BQE <- dat_WDF_TRaC_BQE_type %>% filter(surfaceWaterBodyCategory=="TW")
+dat_W4_CW_BQE <- dat_WDF_TRaC_BQE_type %>% filter(surfaceWaterBodyCategory=="CW")
+#for SE
+dat_W4_TraC_SE <- dat_WDF_TRaC_SE_type
 
-TRaC.overview<-print(table(dat_WFD_TraC$countryCode,dat_WFD_TraC$surfaceWaterBodyCategory))
-TW.overview<-print(table(dat_WFD_TW$countryCode,dat_WFD_TW$qeCode))
-CW.overview<-print(table(dat_WFD_CW$countryCode,dat_WFD_CW$qeCode))
+TRaC.BQE.overview<-print(table(dat_W4_TraC_BQE$countryCode,dat_W4_TraC_BQE$surfaceWaterBodyCategory))
+TW.BQE.overview<-print(table(dat_W4_TW_BQE$countryCode,dat_W4_TW_BQE$qeCode))
+CW.BQE.overview<-print(table(dat_W4_CW_BQE$countryCode,dat_W4_CW_BQE$qeCode))
 
-TRaC.SE.overview <-print(table(dat_WFD_TraC_SE$countryCode,dat_WFD_TraC_SE$surfaceWaterBodyCategory))
-#some unpopulated from Uk correct as in BQE
-TRaC.SE.overview_code <-print(table(dat_WFD_TraC_SE$countryCode,dat_WFD_TraC_SE$qeCode))
+TRaC.SE.overview <-print(table(dat_W4_TraC_SE$countryCode,dat_W4_TraC_SE$surfaceWaterBodyCategory))
 
-write.xlsx(TRaC.overview,here("Data","TRaC-overview.xlsx"))
-write.xlsx(TW.overview,here("Data","TW-overview.xlsx"))
-write.xlsx(CW.overview,here("Data","CW-overview.xlsx"))
-write.xlsx(TRaC.SE.overview_code,here("Data","TRaC-SE-overview.xlsx"))
+#some unpopulated from UK correct as in BQE
+TRaC.SE.overview_code <-print(table(dat_W4_TraC_SE$countryCode,dat_WFD_TraC_SE$qeCode))
 
-saveRDS(dat_WFD_TraC,file = here("Data","dat_WFD_TraC.rds"))
-saveRDS(dat_WFD_TW,file = here("Data","dat_WFD_TW.rds"))
-saveRDS(dat_WFD_CW,file = here("Data","dat_WFD_CW.rds"))
-saveRDS(dat_WFD_TraC_SE,file = here("Data","dat_WFD_TraC_SE.rds"))
+write.xlsx(TRaC.BQE.overview,here("Data","W4TRaC-BQE-overview.xlsx"))
+write.xlsx(TW.BQE.overview,here("Data","W4TW-BQE-overview.xlsx"))
+write.xlsx(CW.BQE.overview,here("Data","W4CW-BQE-overview.xlsx"))
+write.xlsx(TRaC.SE.overview_code,here("Data","W4TRaC-SE-overview.xlsx"))
+
+saveRDS(dat_W4_TraC_BQE,file = here("Data","dat_W4_TraC_BQE.rds"))
+saveRDS(dat_W4_TW_BQE,file = here("Data","dat_W4_TW_BQE.rds"))
+saveRDS(dat_W4_CW_BQE,file = here("Data","dat_W4_CW_BQE.rds"))
+saveRDS(dat_W4_TraC_SE,file = here("Data","dat_W4_TraC_SE.rds"))

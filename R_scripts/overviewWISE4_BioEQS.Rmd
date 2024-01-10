@@ -14,18 +14,23 @@ library(openxlsx)
 library(tidyverse)
 ```
 
-## Overview of WFD TraC Biological QE data extracted from WISE4
+## Overview of WFD TraC Biological QE EQS data extracted from WISE4
 
 This script provides an overview of the data extracted on the biological classifications (EQS for BQE from WISE-4), for both TRaC water categories (TW & CW). 
 
 ### 2. Import data extracted from the WISE4 available for TraC Waters
 ```{r get TraC WFD data}
-#import the BQE data for TRaC
-WFDdatTRaC <- readRDS(file = here("Data","dat_WFD_TRaC.rds")) #TRaC water categories
+#import the BQE & SE data for TRaC
+WFDdatTRaC <- readRDS(file = here("Data","dat_WFD_TRaC.rds")) #BQE data for TRaC water categories WISE4
+WFDdatTRaC_SE <- readRDS(file = here("Data","dat_WFD_TRaC_SE.rds")) #corresponding SE data for TRaC water categories WISE4
 ```
 
 ### 3. Explore WISE4 data extracted for TraC Waters
 ```{r explore TraC WFD data}
-#check years with BQE data for TRaC
+#check years with data for TRaC
 levels(as.factor(WFDdatTRaC$cYear))
+levels(as.factor(WFDdatTRaC_SE$cYear))
+
+levels(as.factor(WFDdatTRaC$qeMonitoringResults))
+levels(as.factor(WFDdatTRaC_SE$qeMonitoringPeriod))
 ```
