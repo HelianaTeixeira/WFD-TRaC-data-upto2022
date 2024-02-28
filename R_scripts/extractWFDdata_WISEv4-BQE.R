@@ -10,7 +10,7 @@
 #contains: data from 1st (2010) and 2nd (2016) River Basin Management Plans (EQS only - categorical).
 
 #note for future: 
-# The WISE-4 data flow is no longer active. 
+# The WISE-4 dataflow is no longer active. 
 # It has been superseded by WISE-6 for Water quality, and by WISE-2 for Biology reporting. 
 
 #load packages
@@ -224,7 +224,7 @@ WDF_TRaC_BQE %>%
 #confirm WC
 levels(factor(WDF_TRaC_BQE$surfaceWaterBodyCategory)) #CW TW
 
-### Get waterbody WB information----
+### Get waterbody WB information
 SWB <- lDataFrames[[29]] %>% #"SOW_SWB_SurfaceWaterBody" 
   select(cYear,countryCode,euSurfaceWaterBodyCode,surfaceWaterBodyCategory,surfaceWaterBodyName)
       #excluded var, no sense for TraC waters: broaderType,broaderTypeCode,broadType,broadTypeCode
@@ -260,7 +260,7 @@ SWB %>%
 ## merge BQE (n=13090, 21 var) with WB national info
 dat_WDF_TRaC_BQE <- left_join(WDF_TRaC_BQE,SWB,by = c("cYear","countryCode","euSurfaceWaterBodyCode","surfaceWaterBodyCategory"))
 
-### Get WB intercalibration Typology information----
+### Get WB intercalibration Typology information
 SWB_IC <- lDataFrames[[21]] %>% #"SOW_SWB_SWB_surfaceWaterBodyIntercalibrationType" 
   select(cYear,countryCode,euSurfaceWaterBodyCode,surfaceWaterBodyCategory,
          surfaceWaterBodyIntercalibrationTypeCode,surfaceWaterBodyIntercalibrationType)
@@ -387,7 +387,11 @@ write.xlsx(types_count,here("Data","ICtypesTRaC_withEQS_WISE4.xlsx"))
 # 5567 NA #same n as the 2010 assessment - check coincidence!
 dat_WDF_TRaC_BQE_type%>%filter(is.na(surfaceWaterBodyIntercalibrationTypeCode))%>%
   count()
-#keep NA's and do not change to "inapplicable" for control of original input
+
+#decided to keep and do not change NA's to "inapplicable"
+# dat_WDF_TRaC_BQE_type <- dat_WDF_TRaC_BQE_type %>%
+#   mutate(surfaceWaterBodyIntercalibrationTypeCode = case_when(is.na (surfaceWaterBodyIntercalibrationTypeCode) ~ "inapplicable",
+#                                               TRUE ~ as.character(surfaceWaterBodyIntercalibrationTypeCode)))
 
 ###Generate new datasets ----
 dat_WFD_TraC <- dat_WDF_TRaC_BQE_type
