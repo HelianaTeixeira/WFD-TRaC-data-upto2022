@@ -169,7 +169,7 @@ ggplot(WQdatCWWB_wide, aes(x=as.factor(countryCode),y=TN_Mn)) +
 Data will be aggregated at Water Body level considering the years (>2009 & <2016) leading to the 2nd reporting cycle 2016
 ```{r Import WISE4 Biota EQS classifications}
 #TW
-dat_WFD_TW <- readRDS(here("Data","dat_WFD_TW.rds")) #import biology
+dat_WFD_TW <- readRDS(here("Data","dat_W4_TW_BQE.rds")) #import biology
 
 dat_WFD_TW_2nd <- dat_WFD_TW %>% #select only 2nd cycle assessments 2016
   filter(cYear==2016) %>% 
@@ -184,7 +184,7 @@ dat_WFD_TW_2nd_wide <- dat_WFD_TW_2nd %>%
 colnames(dat_WFD_TW_2nd_wide) <- make.names(names(dat_WFD_TW_2nd_wide)) # create valid names
 
 #CW
-dat_WFD_CW <- readRDS(here("Data","dat_WFD_CW.rds")) #import biology
+dat_WFD_CW <- readRDS(here("Data","dat_W4_CW_BQE.rds")) #import biology
 
 dat_WFD_CW_2nd <- dat_WFD_CW %>% #select only 2nd cycle assessments 2016
   filter(cYear==2016) %>% 
