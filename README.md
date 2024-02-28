@@ -9,7 +9,7 @@ Assembling Water Quality data from:
 
 (Acess to data sources above was verified by December 2023).
 
-This work was developed within the Water Framework Directive (WFD) Common Implementation Strategy, under the ECOSTAT Working Group. This repository contains the files necessary to assemble Biological and Supporting Quality Elements data from the EU MS national reporting obligations for the WFD. The resulting data will be used to evalute current national boundaries to support good ecological status and to derived methods to improve the current BPG Toolkit. The ultimate goals is to update the Best Practice Guide and help Member States adjusting and deriving their boundaries as they see fit.
+This work was developed within the Water Framework Directive (WFD) Common Implementation Strategy, under the ECOSTAT Working Group. This repository contains the files necessary to assemble Biological and Supporting Quality Elements data from the EU MS national reporting obligations for the WFD. The resulting data will be used to evalute current national boundaries to support good ecological status and to derived methods to improve the current Best Practice Guide (BPG) Toolkit. The ultimate goals is to update the BPG and help Member States adjusting and deriving their nutrients and supporting elements' boundaries as they see fit.
 
 - author: Heliana Teixeira
 - contacts: heliana.teixeira@ua.pt
