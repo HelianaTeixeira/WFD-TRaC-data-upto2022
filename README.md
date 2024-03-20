@@ -3,7 +3,7 @@
 
 ## WFD Transitional and Coastal waters (TRaC) data up to 2022
 Assembling Water Quality data from: 
-* WISE4 (identifier: eea_wise-wfd_s) WFD Biological Quality Elements (EQS) (WFD 1st 2010 & 2nd 2016 cycles; TraC data span 2000 to 2018; note: SE info also available in WISE4);
+* WISE4 (identifier: eea_wise-wfd_s) WFD Biological Quality Elements (EQS categorical) (WFD 1st (<2010) & 2nd (<2016) cycles; SE info available in WISE4 also extracted; note: TraC data span 2000 to 2018);
 * WISE2 (identifier: eea_waterbase-biology_s) EEA Waterbase – Biology (normalised EQR) (1990 to 2022);
 * WISE6 (identifier: eea_waterbase-water-quality-icm_s) WFD Water Quality Supporting Elements (1899 to 2022).
 
@@ -25,9 +25,9 @@ https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_T_WISE6_Disag
 note: for the third WFD reporting cycle, WISE4 has been superseded by WISE-6 for Water quality, and by WISE-2 for Biology.
 
 ## Procedure for data extraction
-1st EXTRACT DATA: the scripts WFD-TRaC-data-upto2022/R_scripts/"extract?-?-?.R" were used to extract data from each of the data sources above indicated for TW and CW categories, selecting variables of interest and merging information from different tables (e.g. samples status classification and respective typology information). More details in each script, including of corrections performed (scripts require download of the databases or, alternatively, adjustments to the script to access the databases online):
+1st EXTRACT DATA: the scripts WFD-TRaC-data-upto2022/R_scripts/"extract?-?-?.R" were used to extract data from each of the data sources above indicated for TW and CW categories, selecting variables of interest and merging information from different tables (e.g. samples' Status classification and respective Typology information). More details in each script, including of corrections performed (scripts require download of the databases or, alternatively, adjustments to the script to access the databases online):
 
-  - extractWFD-WISEv4-BioEQS.R
+  - extractWFD-WISEv4-BioEQS.R (resulting in 4 .rds output files: CW BQE, TW BQE, TraC BQE and TraC SE)
   - extractSOE-WISE2-Biology.R
   - extractSOE-WISE6-SE.R
 
