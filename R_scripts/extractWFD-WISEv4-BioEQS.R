@@ -8,8 +8,7 @@
 #version: WISE SOW v01_r04 or wise-wfd-database_v01_r04 , last modified 01 Oct 2021
 #source: https://www.eea.europa.eu/data-and-maps/data/wise-wfd-4 
 #contains: data from 1st (2010) and 2nd (2016) River Basin Management Plans,
-          #for Biological status classifications (EQS only - categorical) and 
-          #correspondent SE data (at sample or WB level?!!).
+          #for Biological status classifications (EQS only - categorical) at WB level and correspondent SE data.
 
 #note for future: 
 # The WISE-4 data flow is no longer active. 
