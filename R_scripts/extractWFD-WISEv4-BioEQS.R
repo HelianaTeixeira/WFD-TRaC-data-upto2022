@@ -1,4 +1,4 @@
-# Extract tables from EEA WISE WFD SQLite database
+# Extract tables from EEA WISE WFD SQLite database (WISE-4)
 # version: WISE SOW v01_r04 
 # author: Heliana Teixeira
 # date created: 19.09.2022
