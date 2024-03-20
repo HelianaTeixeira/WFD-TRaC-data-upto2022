@@ -7,7 +7,9 @@
 #1st dataset: Extracting biology data from the EEA Water Framework Directive Database (WISE_WFD)
 #version: WISE SOW v01_r04 or wise-wfd-database_v01_r04 , last modified 01 Oct 2021
 #source: https://www.eea.europa.eu/data-and-maps/data/wise-wfd-4 
-#contains: data from 1st (2010) and 2nd (2016) River Basin Management Plans (EQS only - categorical).
+#contains: data from 1st (2010) and 2nd (2016) River Basin Management Plans,
+          #for Biological status classifications (EQS only - categorical) and 
+          #correspondent SE data (at sample or WB level?!!).
 
 #note for future: 
 # The WISE-4 data flow is no longer active. 
@@ -170,7 +172,7 @@ str(lDataFrames[[22]]) #potential interest "SOW_SWB_SWB_swSignificantImpactType"
     summarise(count=n_distinct(id))%>%
     print(n = 29)
   
-  write.xlsx(W4_TraC_ImpactType,here("Data","W4_TraC_ImpactType.xlsx"))
+  write.xlsx(W4_TraC_ImpactType,here("DataOverview","W4_TraC_ImpactType.xlsx"))
 
 str(lDataFrames[[23]]) #potential interest "SOW_SWB_SWB_swSignificantPressureType"
     #explore pressure type for TraC WC
@@ -186,8 +188,8 @@ str(lDataFrames[[23]]) #potential interest "SOW_SWB_SWB_swSignificantPressureTyp
       summarise(count=n_distinct(id))%>%
       print(n = 23)
 
-    write.xlsx(W4_TraC_PressureType,here("Data","W4_TraC_PressureType.xlsx"))
-    write.xlsx(W4_TraC_PressureTypeGroup,here("Data","W4_TraC_PressureTypeGroup.xlsx"))
+    write.xlsx(W4_TraC_PressureType,here("DataOverview","W4_TraC_PressureType.xlsx"))
+    write.xlsx(W4_TraC_PressureTypeGroup,here("DataOverview","W4_TraC_PressureTypeGroup.xlsx"))
 
 str(lDataFrames[[30]]) #potential interest "SOW_SWB_swSignificantImpactOther"
 str(lDataFrames[[31]]) #potential interest "SOW_SWB_swSignificantPressureOther"
@@ -347,24 +349,32 @@ dat_WDF_TRaC_SE%>%
   count() # 60766 unique ids
 
 ## merge BQE (n=13090, 22 var) with IC Type info
-dat_WDF_TRaC_BQE_type <- left_join(dat_WDF_TRaC_BQE,SWB_IC,by=c("cYear","countryCode","euSurfaceWaterBodyCode","surfaceWaterBodyCategory"))
-# final obs in dataset (n=13095, 24 var)
+SWB_IC <- SWB_IC %>% select(countryCode:surfaceWaterBodyIntercalibrationType) #remove variable year (2016) assume same correspondence for both WFD cycles
+dat_WDF_TRaC_BQE_type <- left_join(dat_WDF_TRaC_BQE,SWB_IC,by=c("countryCode","euSurfaceWaterBodyCode","surfaceWaterBodyCategory"))
+# final obs in dataset (n=13101, 24 var)
 
-#check for the 5 duplicates
+#check for the 11 duplicates
 dat_WDF_TRaC_BQE_type %>%
   group_by(id) %>%
   filter(n()>1) %>%
   summarize(n=n())
 
-# merge creates 5 duplicates:
+# merge creates 11 duplicates:
 #     id        n
-# 1 1806855     2
-# 2 1873913     2
-# 3 1897280     2
-# 4 1961857     2
-# 5 1962447     2
+# 1 1446769     2
+# 2 1446773     2
+# 3 1480988     2
+# 4 1480992     2
+# 5 1583442     2
+# 6 1583443     2
+# 7 1806855     2
+# 8 1873913     2
+# 9 1897280     2
+# 10 1961857     2
+# 11 1962447     2
 
-#checking - are Polish data - one WB attributed to two common IC types simultaneously
+#checking - are all Polish data - one WB attributed to two common IC types simultaneously
+#always BC5 and BC7; see last 5 examples:
 dat_WDF_TRaC_BQE_type %>% filter(id==1806855)
 #   surfaceWaterBodyIntercalibrationTypeCode  surfaceWaterBodyIntercalibrationType
 # 1                                   CW-BC5  CW-BC5 - Baltic Sea, surface water salinity 6-8 psu, bottom water salinity 6-12 psu, Exposed, <90 ice days
@@ -393,10 +403,10 @@ dat_WDF_TRaC_BQE_type %>% filter(id==1962447)
 dat_WDF_TRaC_BQE_type$Created <- (Sys.Date()) # add date of creation, 25 variables
 
 ## merge SE (n=60766, 21 var) with IC Type info
-dat_WDF_TRaC_SE_type <- left_join(dat_WDF_TRaC_SE,SWB_IC,by=c("cYear","countryCode","euSurfaceWaterBodyCode","surfaceWaterBodyCategory"))
+dat_WDF_TRaC_SE_type <- left_join(dat_WDF_TRaC_SE,SWB_IC,by=c("countryCode","euSurfaceWaterBodyCode","surfaceWaterBodyCategory"))
 # final obs in dataset (n=60790, 23 var)
 
-#check for the 24 duplicates
+#check for the 30 duplicates
 dat_WDF_TRaC_SE_type %>%
   group_by(id) %>%
   filter(n()>1) %>%
@@ -411,22 +421,27 @@ dat_WDF_TRaC_SE_type$Created <- (Sys.Date()) # add date of creation, 24 variable
 types_count_BQE <- dat_WDF_TRaC_BQE_type%>%
   group_by(surfaceWaterBodyIntercalibrationTypeCode)%>%
   count() %>%
-  print(n = 31)#31
+  print(n = 32) 
+#30 common IC types plus
+# 31 inapplicable 3717
+# 32 NA           190
 
 types_count_SE <- dat_WDF_TRaC_SE_type%>%
   group_by(surfaceWaterBodyIntercalibrationTypeCode)%>%
   count()%>%
-  print(n = 32)#32
-
-write.xlsx(types_count_BQE,here("Data","W4_ICtypesTRaC_withEQS.xlsx"))
-write.xlsx(types_count_SE,here("Data","W4_ICtypesTRaC_withSE.xlsx"))
+  print(n = 33)
+#33 common IC types plus
+# 31 inapplicable                             14326
+# 32 unpopulated                                  6
+# 33 NA                                         706
 
 #note on IC types:
-# 2098 inapplicable
-# 5567 NA - same n as the 2010 assessment - check coincidence!   
 dat_WDF_TRaC_BQE_type%>%filter(is.na(surfaceWaterBodyIntercalibrationTypeCode))%>%
   count()
 #keep NA's and do not change to "inapplicable" for control of original input
+
+write.xlsx(types_count_BQE,here("DataOverview","W4_ICtypesTRaC_withEQS.xlsx"))
+write.xlsx(types_count_SE,here("DataOverview","W4_ICtypesTRaC_withSE.xlsx"))
 
 ###Generate new datasets ----
 #for BQE
@@ -460,10 +475,10 @@ TRaC.SE.overview
 
 TRaC.SE.overview_code <-print(table(dat_W4_TraC_SE$countryCode,dat_W4_TraC_SE$qeCode))
 
-write.xlsx(TRaC.BQE.overview,here("Data","W4TRaC-BQE-overview.xlsx"))
-write.xlsx(TW.BQE.overview,here("Data","W4TW-BQE-overview.xlsx"))
-write.xlsx(CW.BQE.overview,here("Data","W4CW-BQE-overview.xlsx"))
-write.xlsx(TRaC.SE.overview_code,here("Data","W4TRaC-SE-overview.xlsx"))
+write.xlsx(TRaC.BQE.overview,here("DataOverview","W4TRaC-BQE-overview.xlsx"))
+write.xlsx(TW.BQE.overview,here("DataOverview","W4TW-BQE-overview.xlsx"))
+write.xlsx(CW.BQE.overview,here("DataOverview","W4CW-BQE-overview.xlsx"))
+write.xlsx(TRaC.SE.overview_code,here("DataOverview","W4TRaC-SE-overview.xlsx"))
 
 saveRDS(dat_W4_TraC_BQE,file = here("Data","dat_W4_TraC_BQE.rds"))
 saveRDS(dat_W4_TW_BQE,file = here("Data","dat_W4_TW_BQE.rds"))
