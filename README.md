@@ -36,7 +36,7 @@ note: for the third WFD reporting cycle, WISE4 has been superseded by WISE-6 for
 OUTPUT: Overall, separate datasets were created (WFD-TRaC-data-upto2022/DataCreated) regarding each water category (TW & CW) for each WFD reporting cycle: 2010 (1st cycle), 2016 (2nd cycle) and also for the data already available for the 3rd cycle:
 1. BQESEdatTW_WFD2010.xlsx - TW 2010 to be added
 2. BQESEdatCW_WFD2010.xlsx - CW 2010 to be added
-3. BQESEdatTW_WFD2016.xlsx (n=) for all BQE in all available MS reporting
-4. BQESEdatCW_WFD2016.xlsx (n=) for all BQE in all available MS reporting
+3. BQESEdatTW_WFD2016.xlsx (n=111) for all BQE in all available MS reporting
+4. BQESEdatCW_WFD2016.xlsx (n=115) for all BQE in all available MS reporting
 5. TW 2022 - to be added where corresponding BIO & SE data availble for merging
 6. CW 2022 - to be added where corresponding BIO & SE data availble for merging
