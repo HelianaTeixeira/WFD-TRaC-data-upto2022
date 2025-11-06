@@ -187,7 +187,7 @@ WISE2_Biology_Site.CWspatial$Created <- Sys.Date()
 WISE2_Biology_Site.CWspatial <- WISE2_Biology_Site.CWspatial %>% ungroup()
 saveRDS(WISE2_Biology_Site.CWspatial,file = here("Data","dat_BQE_CW.rds"))
 
-#Select TRaC Waterbody data and summarise ----
+### Select TRaC Waterbody data and summarise ----
 # in order to get data for 4 countries ("EE" "IE" "MT" "SI") with no disaggregated data
 WISE2_Biology_AggrWB.TRaC2 <- WISE2_Biology_AggrWB.TRaC %>% 
   filter(countryCode == "EE" | countryCode == "IE" | countryCode == "MT" | countryCode == "SI")
@@ -213,6 +213,9 @@ WISE2_Biology_AggrWB.TRaC2spatial <- WISE2_Biology_AggrWB.TRaC2spatial %>%
 WISE2_Biology_AggrWB.TRaC2spatial$Created <- Sys.Date()
 WISE2_Biology_AggrWB.TRaC2spatial <- WISE2_Biology_AggrWB.TRaC2spatial %>% ungroup()
 saveRDS(WISE2_Biology_AggrWB.TRaC2spatial,file = here("Data","dat_BQE_TRaC_aggrWB_EE-IE-MT-SI.rds"))
+
+#Save Spatial data info separately 
+saveRDS(spatial_dat_shrt,file = here("Data","dat_W6_SOE_TRaC_SpatialInfo-short.rds"))
 
 #NOT USED:
 #to extract annual data from 2016 onwards to complement info extracted from WISE4
