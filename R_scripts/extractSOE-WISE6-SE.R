@@ -2,30 +2,69 @@
 # version: Waterbase WISE6 WQ ICM v2021
 # author: Heliana Teixeira
 # date created: 14.12.2022
+# date modified: 05.11.2025
 
-#Description
-#This script assembles a set of TRAC WQ summary metrics for an appropriate set of supporting elements, 
+### Description----
+#This script assembles a set of TRAC WQ summary metrics for an appropriate set of supporting elements (SE), 
 #taken from the EEA state of the environment WISE 6 data set 
 #downloaded from https://www.eea.europa.eu/data-and-maps/data/waterbase-water-quality-icm-2
-#version 2021 available online from 11th May 2022.
-#disaggregated data
+#direct download link https://sdi.eea.europa.eu/datashare/s/3JiTia3qePyGxyA/download
+#Waterbase - Water Quality ICM, 2024, available online from 2nd July 2025.
+#temporal range 1899-2024
 
+# This script has two parts: I) for the disaggregated data and II) for the aggreggatedByWB data.
+
+### Data Source----
+# Waterbase - Water Quality ICM, 2024
+# Waterbase is the generic name given to the EEA's databases on the status and quality of Europe's 
+# rivers, lakes, groundwater bodies and transitional, coastal and marine waters, on the quantity of Europe's water resources, 
+# and on the emissions to surface waters from point and diffuse sources of pollution.
+# The dataset contains time series of nutrients, organic matter, hazardous substances, pesticides and other chemicals 
+# in rivers, lakes, groundwater, transitional, coastal and marine waters. A list of spatial object identifiers with selected attributes, reported through WFD and WISE Spatial data reporting, is added to dataset as spatial reference. The data has been compiled and processed by EEA. Please refer to the metadata for additional information.
+
+# The dataset is split into two parts: 
+# Part 1: DisaggregatedData; 
+# Part 2: AggregatedData, AggregatedDataByWaterBody, SpatialObject_DerivedData.
+
+# Data is reported by EEA member countries as individual samples from monitoring sites in the DisaggregatedData table 
+# or as annual aggregates of samples from monitoring sites in the AggregatedData table. 
+# Therefore data found in one table is not found in the other, and visa versa. Data in the the AggregatedDataByWaterBody is mostly historical.
+# For an alternative option how to access the Waterbase data without downloading the full dataset, 
+# please see the 'Discodata user guide' in the Documents section.
+# https://sdi.eea.europa.eu/geonetwork/srv/api/records/77976729-1aeb-4b61-a673-83db6c6a2ab2
+
+#and related spatial data info from 
+#source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_S_WISE_SpatialObject_DerivedData
+#which contains: List of spatial object identifiers present in the WISE SOE dataset tables. 
+
+
+### Setup ----
 #load packages
 library(here)
 library(tidyverse)
 library(RSQLite)
 
-### Mapping the original database table(s) into a list of separate data frames----
-## connect to db
-con2 <- dbConnect(drv=RSQLite::SQLite(), here("Databases", "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite")) #edit file name: dbname="?.sqlite"
+### I) Mapping the original database table(s) into a list of separate data frames----
+## connect to SE db
+con2 <- dbConnect(drv=RSQLite::SQLite(), dbname="/Users/WFD_data/Waterbase_v2024_1_WISE6_DisaggregatedData.sqlite") #edit file path: dbname="?.sqlite"
+                  #here("Databases", "dbname")
 
 ## inspect all tables it contains
 dbListTables(con2) #list tables' name
-    # "S_WISE6_SpatialObject_DerivedData" 
-    # "T_WISE6_DisaggregatedData" 
+    # [1] "T_WISE6_DisaggregatedData" 
 
-## explore fields in tables
-dbListFields(con2,"S_WISE6_SpatialObject_DerivedData")
+## explore fields in SE data table
+dbListFields(con2,"T_WISE6_DisaggregatedData")
+# [1] "countryCode"                        "monitoringSiteIdentifier"           "monitoringSiteIdentifierScheme"     "parameterWaterBodyCategory"        
+# [5] "observedPropertyDeterminandCode"    "observedPropertyDeterminandLabel"   "procedureAnalysedMatrix"            "resultUom"                         
+# [9] "phenomenonTimeSamplingDate"         "sampleIdentifier"                   "resultObservedValue"                "resultQualityObservedValueBelowLOQ"
+# [13] "procedureLOQValue"                  "parameterSampleDepth"               "parameterSedimentDepthSampled"      "parameterSpecies"                  
+# [17] "resultMoisture"                     "resultFat"                          "resultExtractableLipid"             "resultLipid"                       
+# [21] "resultObservationStatus"            "Remarks"                            "metadata_versionId"                 "metadata_beginLifeSpanVersion"     
+# [25] "metadata_statusCode"                "metadata_observationStatus"         "metadata_statements"                "UID"  
+
+## explore fields in Spatial data tables
+WISE_SOE_Spatial <- read.csv(file = here("Databases","waterbase_s_wise_spatialobject_deriveddata-4Nov2025.csv"),sep = ";") #all water categories
 #of interest:
 # [1] "countryCode"  
 # [4] "monitoringSiteIdentifier"
@@ -36,21 +75,6 @@ dbListFields(con2,"S_WISE6_SpatialObject_DerivedData")
 # [21] "lat"                           
 # [22] "lon" 
 
-dbListFields(con2,"T_WISE6_DisaggregatedData")
-# [1] "monitoringSiteIdentifier"           "monitoringSiteIdentifierScheme"    
-# [3] "parameterWaterBodyCategory"         "observedPropertyDeterminandCode"   
-# [5] "observedPropertyDeterminandLabel"   "procedureAnalysedMatrix"           
-# [7] "resultUom"                          "phenomenonTimeSamplingDate"        
-# [9] "sampleIdentifier"                   "resultObservedValue"               
-# [11] "resultQualityObservedValueBelowLOQ" "procedureLOQValue"                 
-# [13] "parameterSampleDepth"               "parameterSedimentDepthSampled"     
-# [15] "parameterSpecies"                   "resultMoisture"                    
-# [17] "resultFat"                          "resultExtractableLipid"            
-# [19] "resultLipid"                        "resultObservationStatus"           
-# [21] "Remarks"                            "metadata_versionId"                
-# [23] "metadata_beginLifeSpanVersion"      "metadata_statusCode"               
-# [25] "metadata_observationStatus"         "metadata_statements"               
-# [27] "UID"
 
 ##then extract dataframe for each table
 library(purrr)
