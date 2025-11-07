@@ -1,186 +1,219 @@
 # Extract tables from EEA WISE SOE SQLite database
-# version: Waterbase WISE6 WQ ICM v2021
+# version: Waterbase WISE6 WQ ICM v2024
 # author: Heliana Teixeira
 # date created: 14.12.2022
 # date modified: 05.11.2025
 
 ### Description----
-#This script assembles a set of TRAC WQ summary metrics for an appropriate set of supporting elements (SE), 
-#taken from the EEA state of the environment WISE 6 data set 
-#downloaded from https://www.eea.europa.eu/data-and-maps/data/waterbase-water-quality-icm-2
-#direct download link https://sdi.eea.europa.eu/datashare/s/3JiTia3qePyGxyA/download
-#Waterbase - Water Quality ICM, 2024, available online from 2nd July 2025.
-#temporal range 1899-2024
-
-# This script has two parts: I) for the disaggregated data and II) for the aggreggatedByWB data.
+#This script assembles a set of TRAC Water Quality (WQ) summary metrics for an appropriate set of supporting elements (SE). 
+#Data was taken from the EEA state of the environment (SoE) WISE 6 datadase.
+#First the Spatial data is extracted, then the SE data.
 
 ### Data Source----
-# Waterbase - Water Quality ICM, 2024
+# Waterbase - Water Quality ICM, 2024; available online from 2nd July 2025
+# temporal range 1899-2024
+# downloaded from https://discodata.eea.europa.e (WISE_SOE / latest)
 # Waterbase is the generic name given to the EEA's databases on the status and quality of Europe's 
 # rivers, lakes, groundwater bodies and transitional, coastal and marine waters, on the quantity of Europe's water resources, 
 # and on the emissions to surface waters from point and diffuse sources of pollution.
 # The dataset contains time series of nutrients, organic matter, hazardous substances, pesticides and other chemicals 
-# in rivers, lakes, groundwater, transitional, coastal and marine waters. A list of spatial object identifiers with selected attributes, reported through WFD and WISE Spatial data reporting, is added to dataset as spatial reference. The data has been compiled and processed by EEA. Please refer to the metadata for additional information.
+# in rivers, lakes, groundwater, transitional, coastal and marine waters. 
+# A list of spatial object identifiers with selected attributes, reported through WFD and WISE Spatial data reporting, is added to dataset as spatial reference. 
+# The data has been compiled and processed by EEA. Please refer to the metadata for additional information.
 
-# The dataset is split into two parts: 
-# Part 1: DisaggregatedData; 
-# Part 2: AggregatedData, AggregatedDataByWaterBody, SpatialObject_DerivedData.
+# The database is split into several datasets: 
+# ds1: DisaggregatedData
+# source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_T_WISE6_DisaggregatedData 
+
+# ds2: AggregatedData
+# source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_T_WISE6_AggregatedData 
+
+# ds3: AggregatedDataByWaterBody
+# source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_T_WISE6_AggregatedDataByWaterBody 
+
+# ds4: SpatialObject_DerivedData
+# source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_S_WISE_SpatialObject_DerivedData
+# contains: List of spatial object identifiers present in the WISE SOE dataset tables. 
 
 # Data is reported by EEA member countries as individual samples from monitoring sites in the DisaggregatedData table 
 # or as annual aggregates of samples from monitoring sites in the AggregatedData table. 
-# Therefore data found in one table is not found in the other, and visa versa. Data in the the AggregatedDataByWaterBody is mostly historical.
-# For an alternative option how to access the Waterbase data without downloading the full dataset, 
-# please see the 'Discodata user guide' in the Documents section.
-# https://sdi.eea.europa.eu/geonetwork/srv/api/records/77976729-1aeb-4b61-a673-83db6c6a2ab2
+# Therefore data found in one table is not found in the other, and visa versa. 
+# Data in the the AggregatedDataByWaterBody is mostly historical.
 
-#and related spatial data info from 
-#source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_S_WISE_SpatialObject_DerivedData
-#which contains: List of spatial object identifiers present in the WISE SOE dataset tables. 
-
+# For more details see the 'Discodata user guide' in the Documents section.
 
 ### Setup ----
 #load packages
+if (!require("duckdb")) install.packages("duckdb", dependencies = TRUE)
 library(here)
 library(tidyverse)
-library(RSQLite)
+library(duckdb)
 
-### I) Mapping the original database table(s) into a list of separate data frames----
-## connect to SE db
-con2 <- dbConnect(drv=RSQLite::SQLite(), dbname="/Users/WFD_data/Waterbase_v2024_1_WISE6_DisaggregatedData.sqlite") #edit file path: dbname="?.sqlite"
-                  #here("Databases", "dbname")
+### WISE6 Spatial data ----
+WISE6_Spatial <- read.csv(file = here("Databases","waterbase_s_wise_spatialobject_deriveddata-4Nov2025.csv"),sep = ";") #all water categories
 
-## inspect all tables it contains
-dbListTables(con2) #list tables' name
-    # [1] "T_WISE6_DisaggregatedData" 
+names(WISE6_Spatial)
+# [1] "countryCode"                    "thematicIdIdentifier"           "thematicIdIdentifierScheme"    
+# [4] "monitoringSiteIdentifier"       "monitoringSiteIdentifierScheme" "monitoringSiteName"            
+# [7] "waterBodyIdentifier"            "waterBodyIdentifierScheme"      "waterBodyName"                 
+# [10] "specialisedZoneType"            "naturalAWBHMWB"                 "reservoir"                     
+# [13] "surfaceWaterBodyTypeCode"       "subUnitIdentifier"              "subUnitIdentifierScheme"       
+# [16] "subUnitName"                    "rbdIdentifier"                  "rbdIdentifierScheme"           
+# [19] "rbdName"                        "confidentialityStatus"          "lon"                           
+# [22] "lat"                            "statusCode"      
 
-## explore fields in SE data table
-dbListFields(con2,"T_WISE6_DisaggregatedData")
-# [1] "countryCode"                        "monitoringSiteIdentifier"           "monitoringSiteIdentifierScheme"     "parameterWaterBodyCategory"        
-# [5] "observedPropertyDeterminandCode"    "observedPropertyDeterminandLabel"   "procedureAnalysedMatrix"            "resultUom"                         
-# [9] "phenomenonTimeSamplingDate"         "sampleIdentifier"                   "resultObservedValue"                "resultQualityObservedValueBelowLOQ"
-# [13] "procedureLOQValue"                  "parameterSampleDepth"               "parameterSedimentDepthSampled"      "parameterSpecies"                  
-# [17] "resultMoisture"                     "resultFat"                          "resultExtractableLipid"             "resultLipid"                       
-# [21] "resultObservationStatus"            "Remarks"                            "metadata_versionId"                 "metadata_beginLifeSpanVersion"     
-# [25] "metadata_statusCode"                "metadata_observationStatus"         "metadata_statements"                "UID"  
+unique(WISE6_Spatial$specialisedZoneType)
+# [1] ""                          "riverBasinDistrictSubUnit" "groundWaterBody"          
+# [4] "riverWaterBody"            "lakeWaterBody"             "coastalWaterBody"         
+# [7] "transitionalWaterBody"     "territorialWaters"   
 
-## explore fields in Spatial data tables
-WISE_SOE_Spatial <- read.csv(file = here("Databases","waterbase_s_wise_spatialobject_deriveddata-4Nov2025.csv"),sep = ";") #all water categories
-#of interest:
+#filter by specialisedZoneType retain only TRaC categories
+WISE6_Spatial_TRaC <- WISE6_Spatial %>% 
+  filter(specialisedZoneType %in% c("coastalWaterBody", "transitionalWaterBody"))
+
+unique(WISE6_Spatial_TRaC$statusCode)
+#[1] "superseded" "stable" "retired" "deprecated"
+
+# Fields of interest:
 # [1] "countryCode"  
 # [4] "monitoringSiteIdentifier"
-# [7] "waterBodyIdentifier"          
-# [8] "waterBodyIdentifierScheme"     
+# [7] "waterBodyIdentifier"
 # [9] "waterBodyName"                 
 # [13] "surfaceWaterBodyTypeCode"             
 # [21] "lat"                           
 # [22] "lon" 
 
+# Get spatial information lat lon
+WISE6_Spatial_TRaC <- WISE6_Spatial_TRaC %>%
+  select(!c(reservoir,confidentialityStatus))
 
-##then extract dataframe for each table
-library(purrr)
-tables <- dbListTables(con2)
-lDataFrames <- map(tables, ~{
-  dbGetQuery(conn=con2, statement=paste("SELECT * FROM '", .x, "'", sep=""))
-})
-
-#run dbDisconnect() to disconnect from a database
-dbDisconnect(con2)
-
-### Inspect tables ----
-#Table 1 Spatial data
-str(lDataFrames[[1]])
-tail(lDataFrames[[1]])
-
-levels(factor(lDataFrames[[1]]$"specialisedZoneType"))
-# [1] "coastalWaterBody"      "groundWaterBody"       "lakeWaterBody"         "riverWaterBody"       
-# [5] "territorialWaters"     "transitionalWaterBody"
-
-lDataFrames[[1]] %>% 
-  filter(specialisedZoneType == "coastalWaterBody" | 
-         specialisedZoneType == "transitionalWaterBody")%>%
-  count() #n=2850
-
-#Table 2 SE parameters data
-str(lDataFrames[[2]])
-tail(lDataFrames[[2]])
-
-levels(factor(lDataFrames[[2]]$parameterWaterBodyCategory))
-# "CW"  "GW"  "LW"  "RW"  "TeW" "TW" 
-
-lDataFrames[[2]] %>% 
-  filter(parameterWaterBodyCategory == "CW" | 
-           parameterWaterBodyCategory == "TW")%>%
-  count() #n=1388291
-
-### Get spatial information lat lon ----
-names(lDataFrames[[1]])
-
-spatial_dat <- lDataFrames[[1]] %>% 
-  select(countryCode,thematicIdIdentifier,thematicIdIdentifierScheme,
-         monitoringSiteIdentifier,monitoringSiteIdentifierScheme,monitoringSiteName,
-         waterBodyIdentifier,waterBodyIdentifierScheme,waterBodyName,
-         specialisedZoneType,surfaceWaterBodyTypeCode,lat,lon)
-
-spatial_dat <- spatial_dat %>%
-  filter(specialisedZoneType == "coastalWaterBody" | 
-           specialisedZoneType == "transitionalWaterBody")
+unique(WISE6_Spatial_TRaC$waterBodyIdentifierScheme)
 
 ## select spatial info to data to join
-spatial_dat_shrt <-spatial_dat %>% select(monitoringSiteIdentifier,thematicIdIdentifier,lat,lon,waterBodyIdentifier,waterBodyName,countryCode)
+WISE6_Spatial_TRaC_shrt <-WISE6_Spatial_TRaC %>% 
+  select(countryCode,
+         monitoringSiteIdentifier,
+         thematicIdIdentifier,
+         thematicIdIdentifierScheme,
+         lat,
+         lon,
+         waterBodyIdentifier,
+         waterBodyName,
+         naturalAWBHMWB,
+         surfaceWaterBodyTypeCode)
 
 #1st check for duplicates in spatial data table
-spatial_dat_shrt%>% group_by(monitoringSiteIdentifier)%>%
+WISE6_Spatial_TRaC_shrt %>% group_by(monitoringSiteIdentifier) %>%
   count()%>%
   filter(n>1)%>%
-  print(n=23) #22 duplicates
+  print(n=74) #74 duplicates
+  #there are 636 entries with no monitoringSiteIdentifier
 
-#remove n= 22 duplicates that have exact same info
-spatial_dat_shrt <- spatial_dat_shrt %>%
-  distinct() #n=2828
+#remove duplicates that have exact same info
+WISE6_Spatial_TRaC_shrt <- WISE6_Spatial_TRaC_shrt %>%
+  distinct()
 
 #check for missing spatial coordinates
-spatial_dat_shrt%>%filter(is.na(lat))%>%
+WISE6_Spatial_TRaC_shrt %>% filter(is.na(lat)) %>%
   group_by(monitoringSiteIdentifier)%>%
-  count()%>%
-  print(n=26)
+  count() %>%
+  print(n=24)
 # monitoringSiteIdentifier      n
 # 1 BG60000976                   1
 # 2 ES040ESPF000400127           1
-# 3 ESBIBID-R01                  1
-# 4 ESLELEA-R05                  1
-# 5 ESOKOKA-R03                  1
-# 6 ESOKOLA-R01                  1
-# 7 ESORALT-R01                  1
-# 8 ESORORI-R01                  1
-# 9 ESORSGO-R01                  1
-# 10 IT09-MAT-P077                1
-# 11 IT09-MAT-P084                1
-# 12 IT09-MAT-P087                1
-# 13 IT09-MAT-P104                1
-# 14 IT09-MAT-P210                1
-# 15 IT09-MAT-P212                1
-# 16 IT15-VES8                    1
-# 17 UKEA_BIOSYS_NE_155650        1
-# 18 UKEA_BIOSYS_SO_43800         1
-# 19 UKEA_BIOSYS_SW_9318          1
-# 20 UKEA_WIMS_SO_F0002151        1
-# 21 UKEA_WIMS_SW_81930101        1
-# 22 UKEA_WIMS_SW_E1008300        1
-# 23 UKEA_WIMS_TH_PCRR0025        1
-# 24 UKEA_WIMS_TH_PRGR0030        1
-# 25 UKEA_WIMS_TH_PRGR0081        1
-# 26 UKEA_WIMS_TH_PTHR0107        1
+# 3 ESLELEA-R05                  1
+# 4 ESORALT-R01                  1
+# 5 ESORSGO-R01                  1
+# 6 FRFR05026000                 1
+# 7 FRFR05029800                 1
+# 8 FRFR05076000                 1
+# 9 FRFR05200200                 1
+# 10 FRFR05238500                 1
+# 11 IT15-VES8                    1
+# 12 PT03F03                      1
+# 13 PT03F04                      1
+# 14 RO142945010                  1
+# 15 UKEA_BIOSYS_NE_155650        1
+# 16 UKEA_BIOSYS_SO_43800         1
+# 17 UKEA_BIOSYS_SW_9318          1
+# 18 UKEA_WIMS_SO_F0002151        1
+# 19 UKEA_WIMS_SW_81930101        1
+# 20 UKEA_WIMS_SW_E1008300        1
+# 21 UKEA_WIMS_TH_PCRR0025        1
+# 22 UKEA_WIMS_TH_PRGR0030        1
+# 23 UKEA_WIMS_TH_PRGR0081        1
+# 24 UKEA_WIMS_TH_PTHR0107        1
 
-### Get SE parameters data ----
-names(lDataFrames[[2]])
-levels(factor(lDataFrames[[2]]$observedPropertyDeterminandCode)) 
-levels(factor(lDataFrames[[2]]$observedPropertyDeterminandLabel))
+WISE6_Spatial_TRaC_shrt<- WISE6_Spatial_TRaC_shrt %>% ungroup()
+WISE6_Spatial_TRaC_shrt$Created <- Sys.Date()
+saveRDS(WISE6_Spatial_TRaC_shrt,file = here("Data","dat_W6_SOE_TRaC_Spatial_short_b.rds"))
 
-parameters<-lDataFrames[[2]] %>% select(observedPropertyDeterminandCode,observedPropertyDeterminandLabel)
+### WISE6 SE DisaggregatedData ----
+# Query the file without loading it fully (for big files)
+con2 <- dbConnect(duckdb())
+
+## explore fields in data
+head <- dbGetQuery(con2, "
+  SELECT *
+  FROM read_csv_auto(
+    '/Users/helianateixeira/Rdir/WFD-TRaC-data-upto2022/Databases/waterbase_t_wise6_disaggregateddata.csv',
+    sample_size=10000
+  )
+  LIMIT 5
+")
+
+# select only TRaC data
+df <- dbGetQuery(con2,"
+  SELECT parameterWaterBodyCategory, 
+  FROM read_csv_auto(
+    '/Users/helianateixeira/Rdir/WFD-TRaC-data-upto2022/Databases/waterbase_t_wise6_disaggregateddata.csv')
+")
+
+#inspect water category labels
+levels(as.factor(df$parameterWaterBodyCategory))
+#[1] "CW"  "GW"  "LW"  "RW"  "TeW" "TW" 
+
+#extract TraC data to a df
+df <- dbGetQuery(con2, "
+  SELECT *
+  FROM read_csv_auto(
+    '/Users/helianateixeira/Rdir/WFD-TRaC-data-upto2022/Databases/waterbase_t_wise6_disaggregateddata.csv'
+  )
+  WHERE parameterWaterBodyCategory IN ('CW','TW')
+")
+
+#run dbDisconnect() to disconnect from database
+dbDisconnect(con2)
+
+### Inspect SE parameters data
+names(df)
+# [1] "countryCode"                        "monitoringSiteIdentifier"          
+# [3] "monitoringSiteIdentifierScheme"     "parameterWaterBodyCategory"        
+# [5] "observedPropertyDeterminandCode"    "observedPropertyDeterminandLabel"  
+# [7] "procedureAnalysedMatrix"            "resultUom"                         
+# [9] "phenomenonTimeSamplingDate"         "phenomenonTimeReferenceYear"       
+# [11] "sampleIdentifier"                   "resultObservedValue"               
+# [13] "resultQualityObservedValueBelowLOQ" "procedureLOQValue"                 
+# [15] "parameterSampleDepth"               "parameterSedimentDepthSampled"     
+# [17] "parameterSpecies"                   "resultMoisture"                    
+# [19] "resultFat"                          "resultExtractableLipid"            
+# [21] "resultLipid"                        "resultObservationStatus"           
+# [23] "Remarks"                            "metadata_versionId"                
+# [25] "metadata_beginLifeSpanVersion"      "metadata_statusCode"               
+# [27] "metadata_observationStatus"         "metadata_statements"               
+# [29] "UID"   
+
+levels(factor(df$observedPropertyDeterminandCode)) 
+levels(factor(df$observedPropertyDeterminandLabel))
+
+parameters <-df %>% 
+  select(observedPropertyDeterminandCode,observedPropertyDeterminandLabel)
+
 parameters$observedPropertyDeterminandLabel <- factor(parameters$observedPropertyDeterminandLabel)
 parameters$observedPropertyDeterminandCode <- factor(parameters$observedPropertyDeterminandCode)
 
-summary_codes<-parameters%>%group_by(observedPropertyDeterminandLabel,observedPropertyDeterminandCode)%>%
+summary_codes <- parameters %>% 
+  group_by(observedPropertyDeterminandLabel,observedPropertyDeterminandCode) %>%
   count()
 
 #parameters of interest:
@@ -203,7 +236,12 @@ summary_codes<-parameters%>%group_by(observedPropertyDeterminandLabel,observedPr
   #Ammonia CAS_7664-41-7
   #Alkalinity EEA_3153-02-4
   #Chlorophyll a EEA_3164-01-0
-#and in addition to those by Geoff for FW:
+  #Total nitrogen to total phosphorus ratio EEA_3164-07-6
+  #Particulate organic nitrogen EEA_3161-04-4
+  # BOD7 EEA_3133-02-6
+  # Water temperature EEA_3121-01-5
+
+#and, in addition to those by Geoff for FW, also:
   # Turbidity EEA_3112-01-4
   # Dissolved organic carbon (DOC) EEA_3133-05-9
   # Total organic carbon (TOC) EEA_3133-06-0
@@ -212,13 +250,8 @@ summary_codes<-parameters%>%group_by(observedPropertyDeterminandLabel,observedPr
   # Total organic nitrogen EEA_3161-03-3
 
 #dropped:
-# Particulate organic nitrogen EEA_3161-04-4
-# BOD7 EEA_3133-02-6
 # Carbonate CAS_3812-32-6
 # Calcium CAS_7440-70-2
-# Water temperature EEA_3121-01-5
-# Total nitrogen to total phosphorus ratio EEA_3164-07-6
-# Nitrate to orthophosphate ratio EEA_3164-08-7
 
 #Create a list of determinand codes of interest
 detUsed <- c("EEA_3152-01-0","EEA_3164-01-0","EEA_3111-01-1","CAS_14797-55-8",
@@ -227,107 +260,120 @@ detUsed <- c("EEA_3152-01-0","EEA_3164-01-0","EEA_3111-01-1","CAS_14797-55-8",
              "EEA_31615-01-7","EEA_31613-01-1","EEA_3161-05-5","EEA_3141-01-3",
              "EEA_3161-02-2","CAS_7664-41-7","EEA_3153-02-4",
              "EEA_3112-01-4","EEA_3133-05-9","EEA_3133-06-0",
-             "EEA_31-03-8","EEA_3161-03-3","CAS_14797-65-0")
+             "EEA_31-03-8","EEA_3161-03-3","CAS_14797-65-0",
+             "EEA_3164-07-6","EEA_3161-04-4","EEA_3133-02-6","EEA_3121-01-5")
 
 #Then, below select the TW and CW data and these codes and aggregate the data using a mean.
 
 ### Select TW disagregated data and summarise----
-dat_WQ_TW<- lDataFrames[[2]] %>%
+dat_WQ_TW <- df %>%
   select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeSamplingDate,parameterSampleDepth,sampleIdentifier,resultObservedValue) %>% 
   filter(parameterWaterBodyCategory == "TW" & observedPropertyDeterminandCode %in% detUsed) %>% 
   mutate(phenomenonTimeReferenceYear = as.numeric(substr(phenomenonTimeSamplingDate,1,4))) %>% 
   group_by(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeReferenceYear,parameterSampleDepth) %>%
   summarise(resultMeanValue = mean(resultObservedValue, na.rm=TRUE),
+            resultStdValue = sd(resultObservedValue, na.rm=TRUE), # for data dispersion
             resultMinimumValue = min(resultObservedValue, na.rm=TRUE),
             resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
             resultNumberOfSamples = n()) %>% 
-  mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite")
+  mutate(metadata_versionId = "Waterbase_v2024_WISE6_DisaggregatedData")
 
-#left_join spatial data info
-dat_WQ_TW.test2 <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIdentifier")) # n stays the same OK
+#left_join SE & spatial data info
+dat_WQ_TW <- dat_WQ_TW %>%
+  mutate(thematicIdIdentifierScheme = monitoringSiteIdentifierScheme)
+  
+dat_WQ_TW.Spatial <- left_join(dat_WQ_TW,WISE6_Spatial_TRaC_shrt,
+                             by=c("monitoringSiteIdentifier", "thematicIdIdentifierScheme")) # n stays the same OK
 
 #check for missing spatial coordinates
-dat_WQ_TW.test2%>%filter(is.na(lat))%>%
-  group_by(countryCode)%>%
+dat_WQ_TW.Spatial %>% filter(is.na(lat)) %>%
+  group_by(countryCode) %>%
   count()
-# countryCode      n
-# 1 BG              2
-# 2 ES              9
-# 3 IT             10
-# 4 UK            478
-# 5 NA             33
+# countryCode     n
+# 1 BG            3
+# 2 ES            12
+# 3 FR            318
+# 4 PT            94
+# 5 UK            526
+# 6 NA            48
 
-dat_WQ_TW.test2%>%filter(is.na(lat))%>%
-  group_by(monitoringSiteIdentifier)%>%
-  count()%>%
-  print(n=16)
+dat_WQ_TW.Spatial %>% filter(is.na(lat)) %>%
+  group_by(monitoringSiteIdentifier) %>%
+  count() %>%
+  print(n=23)
 # monitoringSiteIdentifier       n
-# 1 BG60000976                   2 no lat in spatial_dat_shrt
-# 2 ES040ESPF000400127           9 no lat
-# 3 IT05EC_Ve-8                 11 error in name
-# 4 IT05ENC4_Ve-6               11 error in name
-# 5 IT05PNC1_Ve-1               11 error in name
-# 6 IT09-MAT-P077                3 no lat
-# 7 IT09-MAT-P084                3 no lat
-# 8 IT09-MAT-P210                2 no lat
-# 9 IT09-MAT-P212                2 no lat
-# 10 UKEA_WIMS_SO_F0002151       64 no lat
-# 11 UKEA_WIMS_SW_81930101       64 no lat
-# 12 UKEA_WIMS_SW_E1008300       65 no lat
-# 13 UKEA_WIMS_TH_PCRR0025       59 no lat
-# 14 UKEA_WIMS_TH_PRGR0030       67 no lat
-# 15 UKEA_WIMS_TH_PRGR0081       68 no lat
-# 16 UKEA_WIMS_TH_PTHR0107       91 no lat
+# 1 BG60000976                   3 no lat info
+# 2 ES040ESPF000400127          12 no lat info
+# 3 FRFR05026000                64 no lat info
+# 4 FRFR05029800                68 no lat info
+# 5 FRFR05076000                64 no lat info
+# 6 FRFR05200200                64 no lat info
+# 7 FRFR05238500                58 no lat info
+# 8 ITF15LF4                     8 Not in Spatial dataset
+# 9 ITF15LL4                     8 Not in Spatial dataset
+# 10 ITF15LM5                     8 Not in Spatial dataset
+# 11 ITF15LP7                     8 Not in Spatial dataset
+# 12 ITF15LP8                     8 Not in Spatial dataset
+# 13 ITF15LP9                     8 Not in Spatial dataset
+# 14 PT03F03                     47 no lat info
+# 15 PT03F04                     47 no lat info
+# 16 UKEA_BIOSYS_SW_9318          3 no lat info
+# 17 UKEA_WIMS_SO_F0002151       69 no lat info
+# 18 UKEA_WIMS_SW_81930101       70 no lat info
+# 19 UKEA_WIMS_SW_E1008300       72 no lat info
+# 20 UKEA_WIMS_TH_PCRR0025       65 no lat info
+# 21 UKEA_WIMS_TH_PRGR0030       74 no lat info
+# 22 UKEA_WIMS_TH_PRGR0081       75 no lat info
+# 23 UKEA_WIMS_TH_PTHR0107       98 no lat info
 
-
-#correct samples name mismatch to get lat/lon in left join
-# italian: correct names in from dat_WQ_TW
-# 3 IT05EC_Ve-8                 11
-# 4 IT05ENC4_Ve-6               11
-# 5 IT05PNC1_Ve-1               11
-#to:
-# 1 IT05EC_VE-8 
-# 2 IT05ENC4_VE-6  
-# 3 IT05PNC1_VE-1 
-
-dat_WQ_TW <- dat_WQ_TW %>% mutate(monitoringSiteIdentifier=
-                       case_when(monitoringSiteIdentifier == "IT05EC_Ve-8" ~ "IT05EC_VE-8",
-                                 monitoringSiteIdentifier == "IT05ENC4_Ve-6" ~ "IT05ENC4_VE-6",
-                                 monitoringSiteIdentifier == "IT05PNC1_Ve-1"~"IT05PNC1_VE-1",
-                                 TRUE ~ as.character(monitoringSiteIdentifier)))
-
-#re-check
-dat_WQ_TW%>%
-  group_by(monitoringSiteIdentifier)%>%
-  count() #n=593 OK
-
-#left_join spatial data info
-dat_WQ_TW.spatial <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIdentifier")) # n stays the same OK
-
-#re-check
-dat_WQ_TW.spatial%>%filter(is.na(lat))%>%
-  group_by(monitoringSiteIdentifier)%>%
-  count() #n=13 OK
-
-#in case monitoring site id not available check if ok to use thematicIdIdentifier
-#dat_WQ_TW.test3 <- left_join(dat_WQ_TW,spatial_dat_shrt,by=c("monitoringSiteIdentifier", is.na("monitoringSiteIdentifier")=="thematicIdIdentifier" ))
-
-dat_WQ_TW.spatial$Created <- Sys.Date()
-dat_WQ_TW.spatial <- dat_WQ_TW.spatial %>% ungroup()
-saveRDS(dat_WQ_TW.spatial,file = here("Data","dat_WQ_TW.rds"))
+#Save TW data
+dat_WQ_TW.Spatial$Created <- Sys.Date()
+dat_WQ_TW.Spatial <- dat_WQ_TW.Spatial %>% ungroup()
+saveRDS(dat_WQ_TW.Spatial,file = here("Data","dat_WQ_TW.rds"))
 
 ### Select CW disaggregated data and summarise---- 
-dat_WQ_CW <- lDataFrames[[2]] %>%
+dat_WQ_CW <- df %>%
   select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeSamplingDate,parameterSampleDepth,sampleIdentifier,resultObservedValue) %>% 
   filter(parameterWaterBodyCategory == "CW" & observedPropertyDeterminandCode %in% detUsed) %>% 
   mutate(phenomenonTimeReferenceYear = as.numeric(substr(phenomenonTimeSamplingDate,1,4))) %>% 
   group_by(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeReferenceYear,parameterSampleDepth) %>%
   summarise(resultMeanValue = mean(resultObservedValue, na.rm=TRUE),
+            resultStdValue = sd(resultObservedValue, na.rm=TRUE),
             resultMinimumValue = min(resultObservedValue, na.rm=TRUE),
             resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
             resultNumberOfSamples = n()) %>% 
   mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite")
 
+#left_join SE & spatial data info
+dat_WQ_CW <- dat_WQ_CW  %>%
+  mutate(thematicIdIdentifierScheme = monitoringSiteIdentifierScheme)
+
+dat_WQ_CW.Spatial <- left_join(dat_WQ_CW ,WISE6_Spatial_TRaC_shrt,
+                               by=c("monitoringSiteIdentifier", "thematicIdIdentifierScheme")) # n stays the same OK
+
+
+#check for missing spatial coordinates
+dat_WQ_CW.Spatial  %>% filter(is.na(lat)) %>%
+  group_by(countryCode) %>%
+  count()
+# countryCode     n
+# 1 IT              3
+# 2 NA             17
+
+dat_WQ_CW.Spatial %>% filter(is.na(lat)) %>%
+  group_by(monitoringSiteIdentifier) %>%
+  count()
+# monitoringSiteIdentifier       n
+# 1 IT07MA00971                 17 no lat in spatial dat
+# 4 IT15-VES8                    3 no lat in spatial dat
+
+#Save CW data
+dat_WQ_CW.Spatial $Created <- Sys.Date()
+dat_WQ_CW.Spatial  <- dat_WQ_CW.Spatial  %>% ungroup()
+saveRDS(dat_WQ_CW.Spatial ,file = here("Data","dat_WQ_CW.rds"))
+
+
+### explore new tables for checking ----
 #search e.g. for transparency data
 library(readr)
 test <- read_rds(here("Data","dat_WQ_CW.rds")) 
@@ -338,23 +384,28 @@ test %>%
 
 #CW
 # countryCode     n
-# 1 EE             25
-# 2 ES             16
-# 3 IT           1801
-# 4 LT              1
-# 5 MT             77
-# 6 NO             87
-# 7 PT             63
-# 8 NA              1 #na's
+# 1 EE            140
+# 2 EL             67
+# 3 ES             84
+# 4 IT           2581
+# 5 LT              4
+# 6 MT             77
+# 7 NO            131
+# 8 PL              5
+# 9 PT             87
+# 10 NA              1
 
 #TW
 #countryCode     n
-# BE              3
-# BG             16
-# ES             36
-# IT           1057
-# LT             67
-# PT            185
+# 1 BE              9
+# 2 BG             17
+# 3 EL             50
+# 4 ES             62
+# 5 IT           1667
+# 6 LT            109
+# 7 NL              8
+# 8 PL              7
+# 9 PT            240
 
 #check for SD in CW but now only for year corresponding to WFD 2nd cycle 2016
 test %>%
@@ -377,80 +428,65 @@ test2 %>%
   group_by(countryCode)%>%
   count()
 
-#DO in TW in 2nd cycle years
-# countryCode     n
-# 1 BE              9
-# 2 BG             17
-# 3 HR              5
-# 4 IT            182
-# 5 LT             29
-# 6 PT            105
-# 7 UK             26
-
 #O saturation in TW in 2nd cycle years
 # countryCode     n
 # 1 BE              9
 # 2 BG             14
 # 3 FR             15
-# 4 HR              5
+# 4 HR             10
 # 5 IT            279
 # 6 LT             29
-# 7 PT             53
-# 8 UK             26
+# 7 NL              8
+# 8 PT             53
+# 9 UK             26
 
-#left_join spatial data info
-dat_WQ_CW.spatial<- left_join(dat_WQ_CW,spatial_dat_shrt,by=c("monitoringSiteIdentifier")) # n stays the same OK
-
-#check for missing spatial coordinates
-dat_WQ_CW.spatial%>%filter(is.na(lat))%>%
+test2 %>%
+  filter(observedPropertyDeterminandLabel == "Dissolved oxygen")%>% 
+  filter(phenomenonTimeReferenceYear >2009 & phenomenonTimeReferenceYear <2016) %>% 
   group_by(countryCode)%>%
   count()
+#DO  in TW in 2nd cycle years
 # countryCode     n
-# 1 IT              8
-# 2 NA             16
+# 1 BE              9
+# 2 BG             17
+# 3 HR             10
+# 4 IT            182
+# 5 LT             29
+# 6 NL              8
+# 7 PT            105
+# 8 UK             26
 
-dat_WQ_CW.spatial%>%filter(is.na(lat))%>%
-  group_by(monitoringSiteIdentifier)%>%
-  count()
-# monitoringSiteIdentifier       n
-# 1 IT07MA00971                 16 no lat in spatial_dat_shrt
-# 2 IT09-MAT-P087                3 no lat in spatial_dat_shrt
-# 3 IT09-MAT-P104                2 no lat in spatial_dat_shrt
-# 4 IT15-VES8                    3 no lat in spatial_dat_shrt
 
-#in case monitoring site id not available check if ok to use thematicIdIdentifier
-#dat_WQ_CW.test3 <- left_join(dat_WQ_CW,spatial_dat_shrt,by=c("monitoringSiteIdentifier", is.na("monitoringSiteIdentifier")=="thematicIdIdentifier" ))
-
-dat_WQ_CW.spatial$Created <- Sys.Date()
-dat_WQ_CW.spatial <- dat_WQ_CW.spatial %>% ungroup()
-saveRDS(dat_WQ_CW.spatial,file = here("Data","dat_WQ_CW.rds"))
 
 ### Create a list of dets, write to Excel for reference----
 
-TW.dets.summary<-dat_WQ_TW.spatial%>%group_by(observedPropertyDeterminandLabel,observedPropertyDeterminandCode,resultUom)%>%
+TW.dets.summary<-dat_WQ_TW.Spatial%>%group_by(observedPropertyDeterminandLabel,observedPropertyDeterminandCode,resultUom)%>%
   count()%>%
   arrange(desc(n))%>%
-  print(n=24)
+  print(n=32)
 
-CW.dets.summary<-dat_WQ_CW.spatial%>%group_by(observedPropertyDeterminandLabel,observedPropertyDeterminandCode,resultUom)%>%
+CW.dets.summary<-dat_WQ_CW.Spatial%>%group_by(observedPropertyDeterminandLabel,observedPropertyDeterminandCode,resultUom)%>%
   count()%>%
   arrange(desc(n))%>%
-  print(n=23)
+  print(n=32)
 
 library(openxlsx)
 write.xlsx(TW.dets.summary,here("Data","DetList-TW.xlsx"))
 write.xlsx(CW.dets.summary,here("Data","DetList-CW.xlsx"))
 
 ### get summary of years available per Water Category ----
-dat_WQ_CW <- readRDS(here("Data","dat_WQ_CW.rds"))
-summary(as.factor(dat_WQ_CW$phenomenonTimeReferenceYear))
-# 2000  2001  2002  2003  2004  2007  2009  2010  2011  2012  2013  2014  2015  2016  2017  2018  2019  2020  2021 
-#   2     3     2     2     2     8    72   336   265     5     6   7236  7180  5201  5632  10970 6514  7828  1156 
+CW <- readRDS(here("Data","dat_WQ_CW.rds"))
+summary(as.factor(CW$phenomenonTimeReferenceYear))
+#2000  2001  2002  2003  2004  2007  2009  2010  2011  2012  2013  2014  2015  2016  2017  2018  2019  2020  2021  2022  2023 
+#2     3     2     2     2     3    83   379   300     9    15  8286  8161  5956  6305 12877  7384  9260  6495  7862  45656 
 
-dat_WQ_TW <- readRDS(here("Data","dat_WQ_TW.rds"))
-summary(as.factor(dat_WQ_TW$phenomenonTimeReferenceYear))
-# 2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 
-#  9    8   42   14   13   11   10   21   12   167  498  152  116  334  1599 1672 1370 3071 3838 4125 3303    6 
+TW <- readRDS(here("Data","dat_WQ_TW.rds"))
+summary(as.factor(TW$phenomenonTimeReferenceYear))
+#2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 
+#10    8   49   17   16   14   12   13   15  193  571  190  177  419 1822 1914 1578 3392 4451 4731 4569 3135 4763 3166    2 
+
+
+#### left here ----
 
 ## Select CW aggregated data by monitoring site and summarise---- 
 WISE6_WQ_AggSite <- read.csv(file = here("Databases","waterbase_t_wise6_aggregateddata.csv"),sep = ";") #all water categories
