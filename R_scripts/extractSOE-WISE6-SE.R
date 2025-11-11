@@ -38,7 +38,7 @@
 # Data is reported by EEA member countries as individual samples from monitoring sites in the DisaggregatedData table 
 # or as annual aggregates of samples from monitoring sites in the AggregatedData table. 
 # Therefore data found in one table is not found in the other, and visa versa. 
-# Data in the the AggregatedDataByWaterBody is mostly historical.
+# Data in the the AggregatedDataByWaterBody is mostly historical (HT: and currenlty only has GW information. discarded for this work).
 
 # For more details see the 'Discodata user guide' in the Documents section.
 
@@ -265,7 +265,7 @@ detUsed <- c("EEA_3152-01-0","EEA_3164-01-0","EEA_3111-01-1","CAS_14797-55-8",
 
 #Then, below select the TW and CW data and these codes and aggregate the data using a mean.
 
-### Select TW disagregated data and summarise----
+### Select TW disaggregated data and summarise----
 dat_WQ_TW <- df %>%
   select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeSamplingDate,parameterSampleDepth,sampleIdentifier,resultObservedValue) %>% 
   filter(parameterWaterBodyCategory == "TW" & observedPropertyDeterminandCode %in% detUsed) %>% 
@@ -338,11 +338,11 @@ dat_WQ_CW <- df %>%
   mutate(phenomenonTimeReferenceYear = as.numeric(substr(phenomenonTimeSamplingDate,1,4))) %>% 
   group_by(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeReferenceYear,parameterSampleDepth) %>%
   summarise(resultMeanValue = mean(resultObservedValue, na.rm=TRUE),
-            resultStdValue = sd(resultObservedValue, na.rm=TRUE),
+            resultStdValue = sd(resultObservedValue, na.rm=TRUE), #for data dispersion
             resultMinimumValue = min(resultObservedValue, na.rm=TRUE),
             resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
             resultNumberOfSamples = n()) %>% 
-  mutate(metadata_versionId = "Waterbase_v2021_1_WISE6_DisaggregatedData.sqlite")
+  mutate(metadata_versionId = "Waterbase_v2024_WISE6_DisaggregatedData")
 
 #left_join SE & spatial data info
 dat_WQ_CW <- dat_WQ_CW  %>%
@@ -371,7 +371,6 @@ dat_WQ_CW.Spatial %>% filter(is.na(lat)) %>%
 dat_WQ_CW.Spatial $Created <- Sys.Date()
 dat_WQ_CW.Spatial  <- dat_WQ_CW.Spatial  %>% ungroup()
 saveRDS(dat_WQ_CW.Spatial ,file = here("Data","dat_WQ_CW.rds"))
-
 
 ### explore new tables for checking ----
 #search e.g. for transparency data
@@ -480,15 +479,15 @@ summary(as.factor(CW$phenomenonTimeReferenceYear))
 #2000  2001  2002  2003  2004  2007  2009  2010  2011  2012  2013  2014  2015  2016  2017  2018  2019  2020  2021  2022  2023 
 #2     3     2     2     2     3    83   379   300     9    15  8286  8161  5956  6305 12877  7384  9260  6495  7862  45656 
 
+
 TW <- readRDS(here("Data","dat_WQ_TW.rds"))
 summary(as.factor(TW$phenomenonTimeReferenceYear))
 #2000 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 
 #10    8   49   17   16   14   12   13   15  193  571  190  177  419 1822 1914 1578 3392 4451 4731 4569 3135 4763 3166    2 
 
 
-#### left here ----
 
-## Select CW aggregated data by monitoring site and summarise---- 
+## Select TRaC aggregated data by monitoring site ---- 
 WISE6_WQ_AggSite <- read.csv(file = here("Databases","waterbase_t_wise6_aggregateddata.csv"),sep = ";") #all water categories
 #check water categories
 levels(as.factor(WISE6_WQ_AggSite$parameterWaterBodyCategory)) #"CW" "GW" "LW" "RW" "TW"
@@ -500,13 +499,13 @@ WISE6_WQ_AggSite.TRaC <- WISE6_WQ_AggSite %>%
 levels(as.factor(WISE6_WQ_AggSite.TRaC$parameterWaterBodyCategory))
 #"CW" "TW"
 levels(as.factor(WISE6_WQ_AggSite.TRaC$countryCode))
-# "BG" "DE" "ES" "FR" "HR" "IT" "LV" "MT" "NL" "NO" "RO" "UK" ; data for n=12 countries
+# "BG" "DE" "ES" "FR" "HR" "IS" "IT" "LV" "MT" "NL" "NO" "RO" "UK"; data for n=13 countries
 levels(as.factor(WISE6_WQ_AggSite.TRaC$phenomenonTimeReferenceYear))
 # [1] "1971" "1972" "1973" "1974" "1975" "1976" "1977" "1978" "1979" "1980" "1981" "1982"
 # [13] "1983" "1984" "1985" "1986" "1987" "1988" "1989" "1990" "1991" "1992" "1993" "1994"
 # [25] "1995" "1996" "1997" "1998" "1999" "2000" "2001" "2002" "2003" "2004" "2005" "2006"
 # [37] "2007" "2008" "2009" "2010" "2011" "2012" "2013" "2014" "2015" "2016" "2017" "2018"
-# [49] "2019" "2020"
+# [49] "2019" "2020" "2021" "2022" "2023"
 
 #search e.g. for transparency data
 WISE6_WQ_AggSite.TRaC %>%
@@ -515,9 +514,23 @@ WISE6_WQ_AggSite.TRaC %>%
   count()
 # countryCode     n
 # IT             15
+# NL             12
 
-#aggregated by WB
-## Select CW aggregated data by waterbody and summarise---- 
+WISE6_WQ_AggSite.TRaC $Created <- Sys.Date()
+#Save TW data
+WISE6_WQ_AggSite.TW <- WISE6_WQ_AggSite.TRaC %>%
+  filter(parameterWaterBodyCategory == "TW")
+
+saveRDS(WISE6_WQ_AggSite.TW ,file = here("Data", "dat_WQ_TWagg.rds"))
+
+#Save CW data
+WISE6_WQ_AggSite.CW <- WISE6_WQ_AggSite.TRaC %>%
+  filter(parameterWaterBodyCategory == "CW")
+
+saveRDS(WISE6_WQ_AggSite.CW ,file = here("Data", "dat_WQ_CWagg.rds"))
+
+
+## Select TRaC aggregated data by waterbody ---- 
 WISE6_WQ_AggWB <- read.csv(file = here("Databases","waterbase_t_wise6_aggregateddatabywaterbody.csv"),sep = ";") #all water categories
 #check water categories
-levels(as.factor(WISE6_WQ_AggWB$parameterWaterBodyCategory)) #ONLY GW !!
+levels(as.factor(WISE6_WQ_AggWB$parameterWaterBodyCategory)) #ONLY GW !! No TRaC data available - discarded.
