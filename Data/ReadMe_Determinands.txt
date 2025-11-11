@@ -1,1 +1,1 @@
-Determinands extracted in extractWFDdata_WISE6_SE for TRaC waters.
+Determinands extracted in extractWFDdata_WISE6_SE for TRaC waters. Database consulted November 2025. For further details see: https://discodata.eea.europa.eu and https://sdi.eea.europa.eu/catalogue/datahub/api/records/77976729-1aeb-4b61-a673-83db6c6a2ab2/formatters/xsl-view?output=pdf&language=eng&approved=true
