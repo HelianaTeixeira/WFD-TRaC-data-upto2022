@@ -29,7 +29,8 @@ observedPropertyDeterminandCode <- c("EEA_3131-01-9","CAS_14797-55-8","EEA_3152-
              "EEA_3111-01-1","EEA_3141-01-3","EEA_31615-01-7","EEA_31-02-7",
              "CAS_7723-14-0","EEA_3133-05-9","EEA_3133-06-0","CAS_16887-00-6",
              "CAS_7664-41-7","EEA_3133-01-5","EEA_3112-01-4","EEA_3161-02-2",
-             "EEA_31613-01-1","EEA_31-03-8","EEA_3161-05-5","EEA_3161-03-3")
+             "EEA_31613-01-1","EEA_31-03-8","EEA_3161-05-5","EEA_3161-03-3",
+             "EEA_3121-01-5","EEA_3161-04-4","EEA_3164-07-6","EEA_3153-02-4","EEA_3133-02-6")
 
 observedPropertyDeterminandLabel <- c("Oxygen saturation","Nitrate","pH","Nitrite",
                                       "Ammonium","Phosphate","Dissolved oxygen",
@@ -39,23 +40,28 @@ observedPropertyDeterminandLabel <- c("Oxygen saturation","Nitrate","pH","Nitrit
                                       "Total organic carbon (TOC)","Chloride",
                                       "Ammonia","BOD5","Turbidity","Total oxidised nitrogen",
                                       "Non-ionised ammonia","Total dissolved solids",
-                                      "Total inorganic nitrogen","Total organic nitrogen")
+                                      "Total inorganic nitrogen","Total organic nitrogen",
+                                      "Water temperature", "Particulate organic nitrogen",
+                                      "Total nitrogen to total phosphorus ratio","Alkalinity","BOD7")
+
 # add an abbreviated name for convenience
 Det <- c("DOpc","NO3","pH","NO2","NH4","PO4P","DO","CHLA","SD","SAL","TN","SS","TP","DOC",
-         "TOC","Cl","NH3","BOD5","TURB","TON","NH3UI","TDS","TIN","TON")
+         "TOC","Cl","NH3","BOD5","TURB","TON","NH3UI","TDS","TIN","TON","Temp","PON","TN:TP","Alk","BOD7")
 
 resultUom <- c("%","mg{NO3}/L","[pH]","mg{NO2}/L","mg{NH4}/L","mg{P}/L","mg/L",
                "ug/L","m","{PSU}","mg{N}/L", "mg/L","mg{P}/L","mg{C}/L","mg{C}/L",
                "mg/L","ug/L","mg{O2}/L","{NTU}","mg{N}/L","mg{NH3}/L","mg/L",
-               "mg{N}/L","mg{N}/L")
+               "mg{N}/L","mg{N}/L","Cel","mg{N}/L","{massRatio}","mg/L","mg{O2}/L")
 
 # create data frame and rename columns
 Determinands <- data.frame(observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom)
 
 #Save determinands used as rds file
 saveRDS(Determinands,file = here("Data","Determinands_TRaC.rds")) #TRaC WQ sites
-notes <- "Determinands extracted in extractWFDdata_WISE6_SE for TRaC waters."
+notes <- "Determinands extracted in extractWFDdata_WISE6_SE for TRaC waters. Database consulted November 2025. For further details see: https://discodata.eea.europa.eu and https://sdi.eea.europa.eu/catalogue/datahub/api/records/77976729-1aeb-4b61-a673-83db6c6a2ab2/formatters/xsl-view?output=pdf&language=eng&approved=true" 
+
 writeLines(notes,here("Data","ReadMe_Determinands.txt"))
+
 
 #Save determinands used as xlsx workbook
 wb <- createWorkbook()
