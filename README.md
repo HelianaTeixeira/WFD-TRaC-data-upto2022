@@ -14,7 +14,7 @@ This work was developed within the Water Framework Directive (WFD) Common Implem
 - author: Heliana Teixeira
 - contacts: heliana.teixeira@ua.pt
 - date created: 2022.10.20
-- updated: 2024.03.20
+- updated: 2025.11.12
 
 links to WFD data sources:
 - WISE4: https://www.eea.europa.eu/data-and-maps/data/wise-wfd-4
