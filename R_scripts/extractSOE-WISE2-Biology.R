@@ -32,8 +32,8 @@
 #load packages
 library(here)
 library(tidyverse)
-library(RSQLite)
 library(openxlsx)
+#library(RSQLite)
 
 ### Get biological data for TRaC from WISE2 ----
 
@@ -188,7 +188,7 @@ WISE2_Biology_Site.CWspatial <- WISE2_Biology_Site.CWspatial %>% ungroup()
 saveRDS(WISE2_Biology_Site.CWspatial,file = here("Data","dat_BQE_CW.rds"))
 
 ### Select TRaC Waterbody Aggregated data and summarise ----
-# in order to get data for 4 countries ("EE" "IE" "MT" "SI") with no disaggregated data
+# in order to get data for 4 countries ("EE" "IE" "MT" "SI") with no disaggregated data as well as complementary data for others with noth datat types reported (disagg & aggreg)
 WISE2_Biology_AggrWB.TRaC2 <- WISE2_Biology_AggrWB.TRaC %>% 
   filter(countryCode == "EE" | countryCode == "IE" | countryCode == "MT" | countryCode == "SI")
 
@@ -203,16 +203,30 @@ levels(as.factor(WISE2_Biology_AggrWB.TRaC2$phenomenonTimeReferenceYear))
 spatial_dat_shrt.aggrWB <- spatial_dat_shrt %>% select (waterBodyIdentifier,waterBodyName,countryCode) %>% distinct()
 WISE2_Biology_AggrWB.TRaC2spatial<- left_join(WISE2_Biology_AggrWB.TRaC2,spatial_dat_shrt.aggrWB,by=c("waterBodyIdentifier"),suffix = c("", ".y")) # n stays the same OK
 
+WISE2_Biology_AggrWB.TRaCspatial <-left_join(WISE2_Biology_AggrWB.TRaC,spatial_dat_shrt.aggrWB,by=c("waterBodyIdentifier"),suffix = c("", ".y")) # n stays the same OK
+
 #check country code matches
 WISE2_Biology_AggrWB.TRaC2spatial %>%
-    filter(countryCode != countryCode.y) #all good to drop repetead column
+    filter(countryCode != countryCode.y) #all good to drop repeated column
 
 WISE2_Biology_AggrWB.TRaC2spatial <- WISE2_Biology_AggrWB.TRaC2spatial %>%
   select(-countryCode.y)
 
+WISE2_Biology_AggrWB.TRaCspatial %>%
+   filter(countryCode != countryCode.y) #all good to drop repeated column
+ 
+WISE2_Biology_AggrWB.TRaCspatial <- WISE2_Biology_AggrWB.TRaCspatial %>%
+   select(-countryCode.y)
+
+#add date and save
 WISE2_Biology_AggrWB.TRaC2spatial$Created <- Sys.Date()
+WISE2_Biology_AggrWB.TRaCspatial$Created <- Sys.Date()
+
 WISE2_Biology_AggrWB.TRaC2spatial <- WISE2_Biology_AggrWB.TRaC2spatial %>% ungroup()
+WISE2_Biology_AggrWB.TRaCspatial <- WISE2_Biology_AggrWB.TRaCspatial %>% ungroup()
+
 saveRDS(WISE2_Biology_AggrWB.TRaC2spatial,file = here("Data","dat_BQE_TRaC_aggrWB_EE-IE-MT-SI.rds"))
+saveRDS(WISE2_Biology_AggrWB.TRaCspatial,file = here("Data","dat_BQE_TRaC_aggrWB_all.rds"))
 
 #Save Spatial data info separately 
 saveRDS(spatial_dat_shrt,file = here("Data","dat_W6_SOE_TRaC_SpatialInfo-short.rds"))
