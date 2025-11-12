@@ -5,6 +5,7 @@
 # Large database files
 *.sqlite
 /Databases/
+/DataCreated/
 
 # Output files
 *.html
