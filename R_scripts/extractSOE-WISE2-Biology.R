@@ -4,7 +4,6 @@
 # date created: 19.09.2022
 # date modified: 05.11.2025
 
-
 ###Description of source data----
 #Extracting biology data from the EEA State of Environment (WISE_SOE) Waterbase WISE2 Biology
 #https://discodata.eea.europa.eu #Discodata platform
@@ -188,7 +187,7 @@ WISE2_Biology_Site.CWspatial <- WISE2_Biology_Site.CWspatial %>% ungroup()
 saveRDS(WISE2_Biology_Site.CWspatial,file = here("Data","dat_BQE_CW.rds"))
 
 ### Select TRaC Waterbody Aggregated data and summarise ----
-# in order to get data for 4 countries ("EE" "IE" "MT" "SI") with no disaggregated data as well as complementary data for others with noth datat types reported (disagg & aggreg)
+# in order to get data for 4 countries ("EE" "IE" "MT" "SI") with no disaggregated data as well as complementary data for others with no data types reported (disagg & aggreg)
 WISE2_Biology_AggrWB.TRaC2 <- WISE2_Biology_AggrWB.TRaC %>% 
   filter(countryCode == "EE" | countryCode == "IE" | countryCode == "MT" | countryCode == "SI")
 
@@ -230,6 +229,31 @@ saveRDS(WISE2_Biology_AggrWB.TRaCspatial,file = here("Data","dat_BQE_TRaC_aggrWB
 
 #Save Spatial data info separately 
 saveRDS(spatial_dat_shrt,file = here("Data","dat_W6_SOE_TRaC_SpatialInfo-short.rds"))
+
+#Save all extracted data as excel files
+write.xlsx(WISE2_Biology_Site.TWspatial,
+           file = here("DataCreated","BQEdatTW_siteMean_year_wise2.xlsx"),
+           sheetName = "TW_BQEdat", overwrite = TRUE)
+write.xlsx(WISE2_Biology_Site.CWspatial,
+           file = here("DataCreated","BQEdatCW_siteMean_year_wise2.xlsx"),
+           sheetName = "CW_BQEdat", overwrite = TRUE)
+write.xlsx(WISE2_Biology_AggrWB.TRaCspatial,
+           file = here("DataCreated","BQEdatTRaC_aggWB_year_wise2.xlsx"),
+           sheetName = "TRaC_BQEdat", overwrite = TRUE)
+
+### LEFT HERE Aggregate Site data by WB---- 
+
+#dat_WQ_TW <- WISE2_Biology_Site.TWspatial %>%
+  # select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeSamplingDate,parameterSampleDepth,sampleIdentifier,resultObservedValue) %>% 
+  # filter(parameterWaterBodyCategory == "TW" & observedPropertyDeterminandCode %in% detUsed) %>% 
+  # mutate(phenomenonTimeReferenceYear = as.numeric(substr(phenomenonTimeSamplingDate,1,4))) %>% 
+  # group_by(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeReferenceYear,parameterSampleDepth) %>%
+  # summarise(resultMeanValue = mean(resultObservedValue, na.rm=TRUE),
+  #           resultStdValue = sd(resultObservedValue, na.rm=TRUE), # for data dispersion
+  #           resultMinimumValue = min(resultObservedValue, na.rm=TRUE),
+  #           resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
+  #           resultNumberOfSamples = n()) %>% 
+  # mutate(metadata_versionId = "Waterbase_v2024_WISE6_DisaggregatedData")
 
 #NOT USED:
 #to extract annual data from 2016 onwards to complement info extracted from WISE4
