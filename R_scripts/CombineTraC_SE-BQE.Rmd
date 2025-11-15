@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(here)
 library(openxlsx)
 library(tidyverse)
+library(dplyr)
 ```
 
 This script joins the previously extracted water quality data (WQ from WISE-6) for selected supporting elements (SE) to the biological classifications (BQE from WISE-4 & WISE-2), for both TRaC water categories (TW & CW). 
@@ -357,58 +358,177 @@ write.xlsx(WQdatCW_aggWB_year,here("DataCreated","WQdatCW_aggWBmean_year.xlsx"))
 ```
 
 ### A6. Combine WQ data at Water Body level per Reporting cycle
-```{r WQ data summarised per WB-Cycle}
-#considering the years (>2009 & <2016) leading to the 2nd reporting cycle 2016
-# Filter for data 2010-2015
-  #TW
-WQdatTWSite.u<- WQdatTWSite %>% 
-  filter(phenomenonTimeReferenceYear>2009 & phenomenonTimeReferenceYear <2016)
-Det.TW.u <- levels(factor(WQdatTWSite.u$Det)) # list available dets: 24 Dets TW
-  #CW
-WQdatCWSite.u<- WQdatCWSite %>% 
-  filter(phenomenonTimeReferenceYear>2009 & phenomenonTimeReferenceYear <2016)
-Det.CW.u <- levels(factor(WQdatCWSite.u$Det)) # list available dets: 16 Dets CW
+```{r WQ data summarised per WB-Cycle wide format}
+#Consider the years in each WFD reporting cycle, e.g. [2010-2015] leading to the 2nd reporting cycle 2016
 
-#summarise the data at Waterbody by averaging years
-  #TW
-WQdatTWWB <- WQdatTWSite.u %>% 
-    select(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom,resultMeanValue,lat,lon) %>% #waterBodyIdentifierScheme
-  group_by(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom) %>% #waterBodyIdentifierScheme
-  summarise(wbMeanValue=mean(resultMeanValue),nSamples=n(),latMean=mean(lat),lonMean=mean(lon)) %>%  #nSamples is the number of sites * the number of years monitored aggregated by WB for a given Det so nSamples = 12 could be e.g. 6 sites monitored in 2 different years = 12 
-  ungroup()
-  #CW
-WQdatCWWB <- WQdatCWSite.u %>% 
-    select(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom,resultMeanValue,lat,lon) %>% #waterBodyIdentifierScheme
-  group_by(countryCode,waterBodyIdentifier,waterBodyName,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom) %>% #waterBodyIdentifierScheme
-  summarise(wbMeanValue=mean(resultMeanValue),nSamples=n(),latMean=mean(lat),lonMean=mean(lon)) %>%  #nSamples is the number of sites * the number of years monitored aggregated by WB for a given Det so nSamples = 12 could be e.g. 6 sites monitored in 2 different years = 12 
- ungroup()
-```
+#define time periods:
+periods <- list(
+  "2000_2009" = c(2000, 2009),
+  "2010_2015" = c(2010, 2015),
+  "2016_2021" = c(2016, 2021),
+  ">2022" = c(2022, 2024)
+)
 
-Overview of countries reporting for each Det for the period 2010-2015:
-```{r WQ data overview country reporting per Det}
+#loop through them and store results in a named list:
 #TW
-WQdatTWWB %>% 
-  select(Det,countryCode) %>% 
-  group_by(Det,countryCode)%>%
-  summarise (n())%>%
-   ungroup()
+WQdatTWSite_Period <- list() # filtered site-year data
+DetsTW.list_Period <- list()   # available determinands per period
+WQ_TW_WBsummary_Period <- list()  # waterbody summaries per period
+WQ_TWWB_wide  <- list()     # Waterbody WIDE format per period
+
+for (p in names(periods)) {
+  
+  years <- periods[[p]]
+  
+  #filter to years in the period
+  WQdatTWSite_Period[[p]] <- WQdatTWSite %>% 
+    filter(phenomenonTimeReferenceYear >= years[1] &
+           phenomenonTimeReferenceYear <= years[2])
+  
+  #extract available determinands for this period
+  DetsTW.list_Period[[p]] <- levels(factor( WQdatTWSite_Period[[p]]$Det)) # list available dets
+  
+  #summaryse at WB level
+  WQ_TW_WBsummary_Period[[p]] <- WQdatTWSite_Period[[p]] %>% 
+    select(
+      countryCode, waterBodyIdentifier, waterBodyName,
+      observedPropertyDeterminandCode, observedPropertyDeterminandLabel,
+      Det, resultUom, resultMeanValue, lat, lon,
+      phenomenonTimeReferenceYear
+    ) %>%
+    group_by(
+      countryCode, waterBodyIdentifier, waterBodyName,
+      observedPropertyDeterminandCode, observedPropertyDeterminandLabel,
+      Det, resultUom
+    ) %>%
+    summarise(
+      wbMeanValue = mean(resultMeanValue, na.rm = TRUE),
+      nSamples = n(),
+      nYears = n_distinct(phenomenonTimeReferenceYear),
+      latMean = mean(lat, na.rm = TRUE),
+      lonMean = mean(lon, na.rm = TRUE),
+      .groups = "drop" # safer than ungroup ()
+    )
+  
+  #convert to WIDE format
+   WQ_TWWB_wide[[p]] <-  WQ_TW_WBsummary_Period[[p]] %>% 
+      select(
+      -observedPropertyDeterminandCode,
+      -observedPropertyDeterminandLabel,
+      -resultUom,
+      -nSamples,
+      -latMean,
+      -lonMean
+    ) %>% 
+    pivot_wider(
+      names_from  = Det,
+      values_from = wbMeanValue
+    ) %>% 
+    rename_with(
+      ~ paste0(.x, "_Mn"),
+      any_of(DetsTW.list_Period[[p]])
+    )
+}
+
+#inspect period results
+sort(unique(WQdatTWSite_Period$`2010_2015`$phenomenonTimeReferenceYear)) #years per period
+head(WQ_TW_WBsummary_Period$`2010_2015`)
+
+
 #CW
-WQdatCWWB %>% 
-  select(Det,countryCode) %>% 
-  group_by(Det,countryCode)%>%
-  summarise (n())%>%
-   ungroup()
+WQdatCWSite_Period <- list() # filtered site-year data
+DetsCW.list_Period <- list()   # available determinands per period
+WQ_CW_WBsummary_Period <- list()  # waterbody summaries per period
+WQ_CWWB_wide  <- list()     # Waterbody WIDE format per period
+
+for (p in names(periods)) {
+    
+  years <- periods[[p]]
+  
+ #filter to years in the period
+  WQdatCWSite_Period[[p]] <- WQdatCWSite %>% 
+    filter(phenomenonTimeReferenceYear >= years[1] &
+           phenomenonTimeReferenceYear <= years[2])
+  
+  #extract available determinands for this period
+  DetsCW.list_Period[[p]] <- levels(factor( WQdatCWSite_Period[[p]]$Det)) # list available dets
+  
+  #summaryse at WB level
+  WQ_CW_WBsummary_Period[[p]] <- WQdatCWSite_Period[[p]] %>% 
+    select(
+      countryCode, waterBodyIdentifier, waterBodyName,
+      observedPropertyDeterminandCode, observedPropertyDeterminandLabel,
+      Det, resultUom, resultMeanValue, lat, lon,
+      phenomenonTimeReferenceYear
+    ) %>%
+    group_by(
+      countryCode, waterBodyIdentifier, waterBodyName,
+      observedPropertyDeterminandCode, observedPropertyDeterminandLabel,
+      Det, resultUom
+    ) %>%
+    summarise(
+      wbMeanValue = mean(resultMeanValue, na.rm = TRUE),
+      nSamples = n(),
+      nYears = n_distinct(phenomenonTimeReferenceYear),
+      latMean = mean(lat, na.rm = TRUE),
+      lonMean = mean(lon, na.rm = TRUE),
+      .groups = "drop" # safer than ungroup ()
+    )
+  
+  #convert to WIDE format
+   WQ_CWWB_wide[[p]] <-  WQ_CW_WBsummary_Period[[p]] %>% 
+      select(
+      -observedPropertyDeterminandCode,
+      -observedPropertyDeterminandLabel,
+      -resultUom,
+      -nSamples,
+      -latMean,
+      -lonMean
+    ) %>% 
+    pivot_wider(
+      names_from  = Det,
+      values_from = wbMeanValue
+    ) %>% 
+    rename_with(
+      ~ paste0(.x, "_Mn"),
+      any_of(DetsCW.list_Period[[p]])
+    )
+}
+
+
+#Inspect period results
+sort(unique(WQdatCWSite_Period$`2010_2015`$phenomenonTimeReferenceYear)) #years per period
+head(WQ_CW_WBsummary_Period$`2010_2015`)
+
+ {WQ_CW_WBsummary_Period$`>2022`} |>
+  dplyr::summarise(n = dplyr::n(), .by = c(countryCode, waterBodyIdentifier, waterBodyName, nYears, Det)) |>
+  dplyr::filter(n > 1L)
 
 ```
 
-Transform WQ-SE data from long to wide format
-```{r WQ data to Wide format}
+```{r WQ data WB-cycle combined wide Table}
 #TW
-WQdatTWWB_wide <- WQdatTWWB %>% 
-# could add a filter to select data with different number of years contributing to mean  
-  select(-observedPropertyDeterminandCode,-observedPropertyDeterminandLabel,-resultUom,-nSamples,-latMean,-lonMean) %>% 
-  pivot_wider(names_from = Det, values_from = wbMeanValue )  %>% 
-  rename_with(~paste0(.x,"_Mn"),all_of(Det.TW.u))
+WQ_TWWB_master <- bind_rows(
+  lapply(names(WQ_TWWB_wide), function(p) {
+    WQ_TWWB_wide[[p]] %>% mutate(Period = p)
+  })
+) %>% 
+  relocate(Period, .before = 1)   # put Period as first column
+
+head(WQ_TWWB_master) #check
+
+WQ_CWWB_master <- bind_rows(
+  lapply(names(WQ_CWWB_wide), function(p) {
+    WQ_CWWB_wide[[p]] %>% mutate(Period = p)
+  })
+) %>% 
+  relocate(Period, .before = 1)   # put Period as first column
+
+head(WQ_CWWB_master) #check
+
+```
+
+```{r WQ data change units }
 
 # change units of P data to micrograms/L (keep both mg/L and ug/L versions)
 WQdatTWWB_wide <- WQdatTWWB_wide%>%
@@ -416,12 +536,6 @@ WQdatTWWB_wide <- WQdatTWWB_wide%>%
 
 summary(WQdatTWWB_wide)
 
-#CW
-WQdatCWWB_wide <- WQdatCWWB %>% 
-# could add a filter to select data with different number of years contributing to mean  
-  select(-observedPropertyDeterminandCode,-observedPropertyDeterminandLabel,-resultUom,-nSamples,-latMean,-lonMean) %>% 
-  pivot_wider(names_from = Det, values_from = wbMeanValue )  %>% 
-  rename_with(~paste0(.x,"_Mn"),all_of(Det.CW.u))
 
 # change units of P data to micrograms/L (keep both mg/L and ug/L versions)
 WQdatCWWB_wide <- WQdatCWWB_wide%>%
@@ -429,6 +543,33 @@ WQdatCWWB_wide <- WQdatCWWB_wide%>%
 
 summary(WQdatCWWB_wide)
 ```
+
+```{r WQ data WB-cycle combined save Excel multi-sheet period}
+#TW
+library(openxlsx)
+
+wbTWWB <- createWorkbook()
+
+for (p in names(WQ_TWWB_wide)) {
+  addWorksheet(wb, sheetName = p)
+  writeData(wb, sheet = p, x = WQ_TWWB_wide[[p]])
+}
+
+saveWorkbook(wb, "WQ_TWWBsummary_Periods.xlsx", overwrite = TRUE)
+
+#CW 
+wbCWWB <- createWorkbook()
+
+for (p in names(WQ_CWWB_wide)) {
+  addWorksheet(wb, sheetName = p)
+  writeData(wb, sheet = p, x = WQ_CWWB_wide[[p]])
+}
+
+saveWorkbook(wb, "WQ_CWWBsummary_Periods.xlsx", overwrite = TRUE)
+
+
+```
+
 
 **Plots for checking weird values**
 Some P data seems to have has been reported in the wrong units (ug/L) rather than the stated (mg/L). Unsure - check with old reports and MS. Focus on the parameters to be used for BPG approaches testing: e.g. TN, NO3, Secchi Depth and Dissolved Oxygen
