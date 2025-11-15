@@ -6,6 +6,7 @@
 *.sqlite
 /Databases/
 /DataCreated/
+/helps/
 
 # Output files
 *.html
