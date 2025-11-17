@@ -12,6 +12,7 @@ library(here)
 library(openxlsx)
 library(tidyverse)
 library(dplyr)
+library(tidyr)
 ```
 
 This script joins the previously extracted water quality data (WQ from WISE-6) for selected supporting elements (SE) to the biological classifications (BQE from WISE-4 & WISE-2), for both TRaC water categories (TW & CW). 
@@ -357,28 +358,36 @@ write.xlsx(WQdatTW_aggWB_year,here("DataCreated","WQdatTW_aggWBmean_year.xlsx"))
 write.xlsx(WQdatCW_aggWB_year,here("DataCreated","WQdatCW_aggWBmean_year.xlsx")) #CW
 ```
 
-### A6. Combine WQ data at Water Body level per Reporting cycle
-```{r WQ data summarised per WB-Cycle wide format}
+### A6. Combine WQ data for TW at Water Body level per Reporting cycle
+```{r Define time periods for WFD reporting cycles}
 #Consider the years in each WFD reporting cycle, e.g. [2010-2015] leading to the 2nd reporting cycle 2016
-
 #define time periods:
 periods <- list(
-  "2000_2009" = c(2000, 2009),
+  "2000_2003" = c(2000, 2003),
+  "2004_2009" = c(2004, 2009),
   "2010_2015" = c(2010, 2015),
   "2016_2021" = c(2016, 2021),
   ">2022" = c(2022, 2024)
 )
+```
 
-#loop through them and store results in a named list:
+TW
+```{r WQ data summarised per WB-Cycle TW to wide}
+#loop through periods and store results in named lists:
 #TW
 WQdatTWSite_Period <- list() # filtered site-year data
 DetsTW.list_Period <- list()   # available determinands per period
 WQ_TW_WBsummary_Period <- list()  # waterbody summaries per period
 WQ_TWWB_wide  <- list()     # Waterbody WIDE format per period
+WQ_TW_Duplicates_Period  <- list()   # duplicate detailed reporting
 
 for (p in names(periods)) {
   
   years <- periods[[p]]
+  
+ message("\n-------------------------------------------")
+  message("Processing period: ", p)
+  message("-------------------------------------------")
   
   #filter to years in the period
   WQdatTWSite_Period[[p]] <- WQdatTWSite %>% 
@@ -386,7 +395,7 @@ for (p in names(periods)) {
            phenomenonTimeReferenceYear <= years[2])
   
   #extract available determinands for this period
-  DetsTW.list_Period[[p]] <- levels(factor( WQdatTWSite_Period[[p]]$Det)) # list available dets
+  DetsTW.list_Period[[p]] <- unique(WQdatTWSite_Period[[p]]$Det) # list available dets
   
   #summaryse at WB level
   WQ_TW_WBsummary_Period[[p]] <- WQdatTWSite_Period[[p]] %>% 
@@ -410,7 +419,45 @@ for (p in names(periods)) {
       .groups = "drop" # safer than ungroup ()
     )
   
-  #convert to WIDE format
+  #duplicate check (BEFORE pivot_wider)
+  dupTW_summary <- WQ_TW_WBsummary_Period[[p]] %>%
+    count(countryCode, waterBodyIdentifier, waterBodyName, Det) %>%
+    filter(n > 1)
+  
+  if (nrow(dupTW_summary) > 0) {
+    
+    warning("\nDuplicates detected in period ", p, ":")
+    print(dupTW_summary, n = Inf)
+    
+    # Extract full duplicate details with site info
+    dupTW_details <- WQdatTWSite_Period[[p]] %>%
+      semi_join(dupTW_summary,
+        by = c("countryCode", "waterBodyIdentifier",
+               "waterBodyName", "Det")
+      ) %>%
+      group_by(
+        countryCode, waterBodyIdentifier, waterBodyName,
+        Det
+      ) %>%
+      summarise(
+        stations          = paste(unique(monitoringSiteIdentifier), collapse = ", "),
+        schemes           = paste(unique(monitoringSiteIdentifierScheme), collapse=", "),
+        years             = paste(sort(unique(phenomenonTimeReferenceYear)), collapse = ", "),
+        nSamples_raw      = n(),
+        meanValue_raw     = mean(resultMeanValue, na.rm = TRUE),
+        min_raw           = min(resultMeanValue, na.rm = TRUE),
+        max_raw           = max(resultMeanValue, na.rm = TRUE),
+        raw_values        = paste(round(resultMeanValue, 3), collapse = ", "),
+        .groups = "drop"
+      )
+    
+    WQ_TW_Duplicates_Period[[p]] <- dupTW_details
+    
+  } else {
+    message("No duplicates detected before pivot_wider.")
+    WQ_TW_Duplicates_Period[[p]] <- data.frame()  # empty
+  }
+  #convert to WIDE format (no List cols)
    WQ_TWWB_wide[[p]] <-  WQ_TW_WBsummary_Period[[p]] %>% 
       select(
       -observedPropertyDeterminandCode,
@@ -422,7 +469,8 @@ for (p in names(periods)) {
     ) %>% 
     pivot_wider(
       names_from  = Det,
-      values_from = wbMeanValue
+      values_from = wbMeanValue,
+      values_fn   = mean
     ) %>% 
     rename_with(
       ~ paste0(.x, "_Mn"),
@@ -430,28 +478,54 @@ for (p in names(periods)) {
     )
 }
 
+```
+  
+```{r WQ data WB-cycle TW inspect results}
 #inspect period results
 sort(unique(WQdatTWSite_Period$`2010_2015`$phenomenonTimeReferenceYear)) #years per period
 head(WQ_TW_WBsummary_Period$`2010_2015`)
+head(WQ_TWWB_wide$`2010_2015`)
+```
 
+```{r Excel Export of Duplicate Reports TW}
+#each period gets its own sheet
+wbTW <- createWorkbook()
 
+for (p in names(WQ_TW_Duplicates_Period)) {
+  addWorksheet(wbTW, sheetName = p)
+  writeData(wbTW, p, WQ_TW_Duplicates_Period[[p]])
+}
+
+saveWorkbook(wbTW, here("DataCreated","WQ_TWWB_Duplicates_Report.xlsx"), overwrite = TRUE)
+
+```
+
+### A7. Combine WQ data for CW at Water Body level per Reporting cycle 
+CW
+```{r WQ data summarised per WB-Cycle TW to wide}
+#loop through periods and store results in named lists:
 #CW
 WQdatCWSite_Period <- list() # filtered site-year data
 DetsCW.list_Period <- list()   # available determinands per period
 WQ_CW_WBsummary_Period <- list()  # waterbody summaries per period
 WQ_CWWB_wide  <- list()     # Waterbody WIDE format per period
+WQ_CW_Duplicates_Period  <- list()   # duplicate detailed reporting
 
 for (p in names(periods)) {
-    
+  
   years <- periods[[p]]
   
- #filter to years in the period
+ message("\n-------------------------------------------")
+  message("Processing period: ", p)
+  message("-------------------------------------------")
+  
+  #filter to years in the period
   WQdatCWSite_Period[[p]] <- WQdatCWSite %>% 
     filter(phenomenonTimeReferenceYear >= years[1] &
            phenomenonTimeReferenceYear <= years[2])
   
   #extract available determinands for this period
-  DetsCW.list_Period[[p]] <- levels(factor( WQdatCWSite_Period[[p]]$Det)) # list available dets
+  DetsCW.list_Period[[p]] <- unique(WQdatCWSite_Period[[p]]$Det) # list available dets
   
   #summaryse at WB level
   WQ_CW_WBsummary_Period[[p]] <- WQdatCWSite_Period[[p]] %>% 
@@ -475,7 +549,46 @@ for (p in names(periods)) {
       .groups = "drop" # safer than ungroup ()
     )
   
-  #convert to WIDE format
+  #duplicate check (BEFORE pivot_wider)
+  dupCW_summary <- WQ_CW_WBsummary_Period[[p]] %>%
+    count(countryCode, waterBodyIdentifier, waterBodyName, Det) %>%
+    filter(n > 1)
+  
+  if (nrow(dupCW_summary) > 0) {
+    
+    warning("\nDuplicates detected in period ", p, ":")
+    print(dupCW_summary, n = Inf)
+    
+    # Extract full duplicate details with site info
+    dupCW_details <- WQdatCWSite_Period[[p]] %>%
+      semi_join(dupCW_summary,
+        by = c("countryCode", "waterBodyIdentifier",
+               "waterBodyName", "Det")
+      ) %>%
+      group_by(
+        countryCode, waterBodyIdentifier, waterBodyName,
+        Det
+      ) %>%
+      summarise(
+        stations          = paste(unique(monitoringSiteIdentifier), collapse = ", "),
+        schemes           = paste(unique(monitoringSiteIdentifierScheme), collapse=", "),
+        years             = paste(sort(unique(phenomenonTimeReferenceYear)), collapse = ", "),
+        nSamples_raw      = n(),
+        meanValue_raw     = mean(resultMeanValue, na.rm = TRUE),
+        min_raw           = min(resultMeanValue, na.rm = TRUE),
+        max_raw           = max(resultMeanValue, na.rm = TRUE),
+        raw_values        = paste(round(resultMeanValue, 3), collapse = ", "),
+        .groups = "drop"
+      )
+    
+    WQ_CW_Duplicates_Period[[p]] <- dupCW_details
+    
+  } else {
+    message("No duplicates detected before pivot_wider.")
+    WQ_CW_Duplicates_Period[[p]] <- data.frame()  # empty
+  }
+  
+  #convert to WIDE format (no List cols)
    WQ_CWWB_wide[[p]] <-  WQ_CW_WBsummary_Period[[p]] %>% 
       select(
       -observedPropertyDeterminandCode,
@@ -487,7 +600,8 @@ for (p in names(periods)) {
     ) %>% 
     pivot_wider(
       names_from  = Det,
-      values_from = wbMeanValue
+      values_from = wbMeanValue,
+      values_fn   = mean
     ) %>% 
     rename_with(
       ~ paste0(.x, "_Mn"),
@@ -495,104 +609,158 @@ for (p in names(periods)) {
     )
 }
 
+```
 
-#Inspect period results
+```{r WQ data WB-cycle CW inspect results}
+#inspect period results
 sort(unique(WQdatCWSite_Period$`2010_2015`$phenomenonTimeReferenceYear)) #years per period
 head(WQ_CW_WBsummary_Period$`2010_2015`)
-
- {WQ_CW_WBsummary_Period$`>2022`} |>
-  dplyr::summarise(n = dplyr::n(), .by = c(countryCode, waterBodyIdentifier, waterBodyName, nYears, Det)) |>
-  dplyr::filter(n > 1L)
+head(WQ_CWWB_wide$`2010_2015`)
 
 ```
 
-```{r WQ data WB-cycle combined wide Table}
-#TW
-WQ_TWWB_master <- bind_rows(
-  lapply(names(WQ_TWWB_wide), function(p) {
-    WQ_TWWB_wide[[p]] %>% mutate(Period = p)
-  })
-) %>% 
-  relocate(Period, .before = 1)   # put Period as first column
+```{r Excel Export of Duplicate Reports CW}
+#each period gets its own sheet
+wbCW <- createWorkbook()
 
-head(WQ_TWWB_master) #check
-
-WQ_CWWB_master <- bind_rows(
-  lapply(names(WQ_CWWB_wide), function(p) {
-    WQ_CWWB_wide[[p]] %>% mutate(Period = p)
-  })
-) %>% 
-  relocate(Period, .before = 1)   # put Period as first column
-
-head(WQ_CWWB_master) #check
-
-```
-
-```{r WQ data change units }
-
-# change units of P data to micrograms/L (keep both mg/L and ug/L versions)
-WQdatTWWB_wide <- WQdatTWWB_wide%>%
-  mutate(TP_Mn.microgr = TP_Mn * 1000, PO4P_Mn.microgr = PO4P_Mn * 1000)
-
-summary(WQdatTWWB_wide)
-
-
-# change units of P data to micrograms/L (keep both mg/L and ug/L versions)
-WQdatCWWB_wide <- WQdatCWWB_wide%>%
-  mutate(TP_Mn.microgr = TP_Mn * 1000, PO4P_Mn.microgr = PO4P_Mn * 1000)
-
-summary(WQdatCWWB_wide)
-```
-
-```{r WQ data WB-cycle combined save Excel multi-sheet period}
-#TW
-library(openxlsx)
-
-wbTWWB <- createWorkbook()
-
-for (p in names(WQ_TWWB_wide)) {
-  addWorksheet(wb, sheetName = p)
-  writeData(wb, sheet = p, x = WQ_TWWB_wide[[p]])
+for (p in names(WQ_CW_Duplicates_Period)) {
+  addWorksheet(wbCW, sheetName = p)
+  writeData(wbCW, p, WQ_CW_Duplicates_Period[[p]])
 }
 
-saveWorkbook(wb, "WQ_TWWBsummary_Periods.xlsx", overwrite = TRUE)
+saveWorkbook(wbCW, here("DataCreated","WQ_CWWB_Duplicates_Report.xlsx"), overwrite = TRUE)
+
+
+```
+
+### A8. Combine WQ data for TW & CW at Water Body level per Reporting cycle - MASTER datasets
+TW
+```{r WQ data WB-cycle combined wide-per period Table TW}
+#1st force numeric columns so list-cols get reduced
+WQ_TWWB_wide_clean <- lapply(WQ_TWWB_wide, function(df) {
+  df %>% mutate(across(where(is.list), ~sapply(.x, function(v) mean(unlist(v), na.rm=TRUE))))
+})
+
+#Change units of P data to micrograms/L in WB-cycle combined datasets
+WQ_TWWB_wide_clean <- lapply(
+  WQ_TWWB_wide_clean,
+  function(df) {
+    df %>% mutate(
+      TP_Mn_microgr   = if ("TP_Mn"   %in% names(df)) TP_Mn   * 1000 else NA_real_,
+      PO4P_Mn_microgr = if ("PO4P_Mn" %in% names(df)) PO4P_Mn * 1000 else NA_real_
+    )
+  }
+)
+
+WQ_TWWB_master_list <- WQ_TWWB_wide_clean #Keep the list of period tables for Excel export
+
+#create one combined long master table
+WQ_TWWB_master_df <- bind_rows(
+  lapply(names(WQ_TWWB_wide_clean), function(p) {
+    WQ_TWWB_wide_clean[[p]] %>% mutate(Period = p)
+  }),
+  .id = NULL
+) %>% relocate(Period, .before = 1) # put Period as first column
+
+head(WQ_TWWB_master_df) #check
+```
+
+CW
+```{r WQ data WB-cycle combined wide-per period Table CW}
+#1st force numeric columns so list-cols get reduced
+WQ_CWWB_wide_clean <- lapply(WQ_CWWB_wide, function(df) {
+  df %>% mutate(across(where(is.list), ~sapply(.x, function(v) mean(unlist(v), na.rm=TRUE))))
+})
+
+#Change units of P data to micrograms/L in WB-cycle combined datasets
+WQ_CWWB_wide_clean <- lapply(
+  WQ_CWWB_wide_clean,
+  function(df) {
+    df %>% mutate(
+      TP_Mn_microgr   = if ("TP_Mn"   %in% names(df)) TP_Mn   * 1000 else NA_real_,
+      PO4P_Mn_microgr = if ("PO4P_Mn" %in% names(df)) PO4P_Mn * 1000 else NA_real_
+    )
+  }
+)
+
+WQ_CWWB_master_list <- WQ_CWWB_wide_clean #Keep the list of period tables for Excel export
+
+#create one combined long master table
+WQ_CWWB_master_df <- bind_rows(
+  lapply(names(WQ_CWWB_wide_clean), function(p) {
+    WQ_CWWB_wide_clean[[p]] %>% mutate(Period = p)
+  }),
+  .id = NULL
+) %>% relocate(Period, .before = 1) # put Period as first column
+
+
+head(WQ_CWWB_master_df) #check
+```
+
+### A9. Check units of P data to micrograms/L in WB-cycle combined datasets 
+```{r WQ data change units TW }
+# CHECK units of P data to micrograms/L (keep both columns mg/L and ug/L versions)
+summary(WQ_TWWB_master_df)
+```
+
+```{r WQ data change units CW}
+# CHECK units of P data to micrograms/L (keep both mg/L and ug/L versions)
+summary(WQ_CWWB_master_df)
+```
+
+### A10. Export WB-cycle combined datasets to Excel multi-sheet files
+```{r WQ data WB-cycle combined save Excel multi-sheet period}
+#1st apply function to sanitize sheet names:
+clean_sheet_name <- function(x) {
+  x <- gsub("[:\\\\/?*\\[\\]<>]", "_", x)   # replace illegal chars
+  x <- trimws(x)                            # remove leading/trailing spaces
+  x <- substr(x, 1, 31)                     # Excel max = 31 chars
+  return(x)
+}
+
+
+#TW
+wbTWWB <- createWorkbook()
+
+for (p in names(WQ_TWWB_master_list)) {
+  
+  sheet <- clean_sheet_name(p)
+  message("Adding sheet: ", sheet, "  (from original: ", p, ")")
+  
+  addWorksheet(wbTWWB, sheetName = sheet)
+  writeData(wbTWWB, sheet = sheet, x = WQ_TWWB_master[[p]])
+}
+
+saveWorkbook(wbTWWB, here("DataCreated","WQ_TWWBsummary_Periods.xlsx"), overwrite = TRUE)
 
 #CW 
 wbCWWB <- createWorkbook()
 
-for (p in names(WQ_CWWB_wide)) {
-  addWorksheet(wb, sheetName = p)
-  writeData(wb, sheet = p, x = WQ_CWWB_wide[[p]])
+for (p in names(WQ_CWWB_master_list)) {
+  
+  sheet <- clean_sheet_name(p)
+  
+  addWorksheet(wbCWWB, sheetName = sheet)
+  writeData(wbCWWB, sheet = sheet, x = WQ_CWWB_master[[p]])
 }
 
-saveWorkbook(wb, "WQ_CWWBsummary_Periods.xlsx", overwrite = TRUE)
-
+saveWorkbook(wbCWWB, here("DataCreated","WQ_CWWBsummary_Periods.xlsx"), overwrite = TRUE)
 
 ```
-
 
 **Plots for checking weird values**
 Some P data seems to have has been reported in the wrong units (ug/L) rather than the stated (mg/L). Unsure - check with old reports and MS. Focus on the parameters to be used for BPG approaches testing: e.g. TN, NO3, Secchi Depth and Dissolved Oxygen
 ```{r SE check plots}
-#TW
-ggplot(WQdatTWWB_wide, aes(x=as.factor(countryCode),y=PO4P_Mn)) +
-  geom_boxplot()
-
-ggplot(WQdatTWWB_wide, aes(x=as.factor(countryCode),y=PO4P_Mn.microgr)) +
-  geom_boxplot()
-
-ggplot(WQdatTWWB_wide, aes(x=as.factor(countryCode),y=SD_Mn)) +
-  geom_boxplot()
-
 #CW
-ggplot(WQdatCWWB_wide, aes(x=as.factor(countryCode),y=PO4P_Mn)) +
+ggplot(WQ_CWWB_master_df, aes(x=as.factor(countryCode),y=PO4P_Mn)) +
   geom_boxplot()
 
-ggplot(WQdatCWWB_wide, aes(x=as.factor(countryCode),y=PO4P_Mn.microgr)) +
+ggplot(WQ_CWWB_master_df, aes(x=as.factor(countryCode),y=PO4P_Mn_microgr)) +
   geom_boxplot()
 
-ggplot(WQdatCWWB_wide, aes(x=as.factor(countryCode),y=TN_Mn)) +
+ggplot(WQ_CWWB_master_df, aes(x=as.factor(countryCode),y=SD_Mn)) +
   geom_boxplot()
+
 ```
 
 ## B. Import Biological QE data
@@ -699,63 +867,8 @@ colnames(dat_BQE_TRaC.aggrWB_wideEQS) <- make.names(names(dat_BQE_TRaC.aggrWB_wi
 
 ```
 
-option to aggregate by reporting Cycle not yet done
-```{r aggregate by reporting Cycle yet done}
-#select only 2nd cycle assessments [2010-2015]
-# dat_BQE_TW_2nd <- dat_BQE_TW %>% 
-#   filter(phenomenonTimeReferenceYear > 2009 |is.na(phenomenonTimeReferenceYear)) %>% 
-#   filter(phenomenonTimeReferenceYear < 2016 |is.na(phenomenonTimeReferenceYear)) %>%
-#   ungroup()
-
-#LEFT HERE
-# dat_BQE_TW_2nd_wide <- dat_BQE_TW_2nd %>% 
-#   select(euSurfaceWaterBodyCode,countryCode,qeCode,qeStatusOrPotentialValue,naturalAWBHMWB,surfaceWaterBodyTypeCode,
-#          surfaceWaterBodyIntercalibrationType,surfaceWaterBodyIntercalibrationTypeCode,cArea,cLength) %>% 
-#   pivot_wider(names_from = qeCode, values_from = qeStatusOrPotentialValue)
-# 
-# colnames(dat_BQE_TW_2nd_wide) <- make.names(names(dat_BQE_TW_2nd_wide)) # create valid names
-
-#dat_BQE_TW_3rd <- dat_BQE_TW %>% #select only 3r cycle assessments [2016-2021]
- # filter(phenomenonTimeReferenceYear > 2015 |is.na(phenomenonTimeReferenceYear)) %>% 
- # filter(phenomenonTimeReferenceYear < 2022 |is.na(phenomenonTimeReferenceYear)) %>%
- # ungroup()
-
-#repeat also for CW
-```
-
-## C. Combine WFD TraC Supporting and Biological QE data
-### C1. Combine WQ and BQE data for TraC Waters
-Data averaged by Site and year
-```{r WQ SiteMean-Yearly to Wide format}
-#TW
-Det.TW <- levels(factor(WQdatTWSiteMeanYearly.wb$Det))
-
-WQdatTWSiteMeanYearly.wb <- WQdatTWSiteMeanYearly.wb %>%
-  mutate(phenomenonTimeReferenceYear = as.integer(round(phenomenonTimeReferenceYear)))
-
-WQdatTWSiteMeanYearly.wide <- WQdatTWSiteMeanYearly.wb %>%
-  select(countryCode,monitoringSiteIdentifier,monitoringSiteIdentifierScheme,phenomenonTimeReferenceYear,Det,
-         resultMeanValue,procedureAnalysedMatrix,parameterSampleDepth,parameterSamplingPeriod,
-         waterBodyName,waterBodyIdentifier,naturalAWBHMWB,surfaceWaterBodyTypeCode,Created) %>%
-   pivot_wider(names_from = Det, values_from = resultMeanValue )  %>% 
-   rename_with(~paste0(.x,"_Mn"),any_of(Det.TW))#all_of(Det.TW)
-
-#CW
-Det.CW <- levels(factor(WQdatCWSiteMeanYearly.wb$Det))
-
-WQdatCWSiteMeanYearly.wb <- WQdatCWSiteMeanYearly.wb %>%
-  mutate(phenomenonTimeReferenceYear = as.integer(round(phenomenonTimeReferenceYear)))
-
-WQdatCWSiteMeanYearly.wide <- WQdatCWSiteMeanYearly.wb %>%
-  select(countryCode,monitoringSiteIdentifier,monitoringSiteIdentifierScheme,phenomenonTimeReferenceYear,Det,
-         resultMeanValue,procedureAnalysedMatrix,parameterSampleDepth,parameterSamplingPeriod,
-         waterBodyName,waterBodyIdentifier,naturalAWBHMWB,surfaceWaterBodyTypeCode,Created) %>%
-   pivot_wider(names_from = Det, values_from = resultMeanValue )  %>% 
-   rename_with(~paste0(.x,"_Mn"),any_of(Det.CW))#all_of(Det.TW)
-
-```
-
-```{r Combine WQ and EQS classifications per Site-Year}
+### B2. Combine WISE4 & WISE2 Biological EQS data for all available years
+```{r harmonise BQEs names WISE2 & WISE4}
 #wise4
 dat_WFD_TW.wide #n=1119
 dat_WFD_CW.wide #n=4735
@@ -765,108 +878,431 @@ dat_BQE_TW_wideEQS #n=1496
 dat_BQE_CW_wideEQS #n=3257
 dat_BQE_TRaC.aggrWB_wideEQS #n=1451
 
-#wise6
-WQdatTWSiteMeanYearly.wide
-WQdatCWSiteMeanYearly.wide 
-
-#1st merge Biology wise 4 & 2
-unique(dat_WFD_TW.wide$cYear)
-unique(dat_BQE_TW_wideEQS$phenomenonTimeReferenceYear)
+#1st harmonise BQE names in both reporting databases 
 names(dat_WFD_TW.wide)
+names(dat_WFD_CW.wide)
 names(dat_BQE_TW_wideEQS)
+names(dat_BQE_CW_wideEQS)
+names(dat_BQE_TRaC.aggrWB_wideEQS)
 
-#harmonise BQEs names
-  
-#BQEs names in dat_WFD_TW.wide changes to apply
-# "QE1.3...Benthic.invertebrates" ==  "InvertebrateEQR" 
-# "QE1.4...Fish" == "FishEQR"
-# "QE1.2.1...Macroalgae"==   "MacroalgaeEQR"  
-# "QE1.1...Phytoplankton"  == "PhytoplanktonEQR"
-# "QE1.2...Other.aquatic.flora" 
-# "QE1.2.3...Macrophytes" == "Macrophytes"
-# "QE1.2.2...Angiosperms" =="AngiospermsEQR"
-# "QE1.2.4...Phytobenthos"   ==  "PhytobenthosEQR_E" 
-
+#TW 
 dat_WFD_TW.wide <- dat_WFD_TW.wide %>%
   rename(
     InvertebrateEQR = QE1.3...Benthic.invertebrates,
     FishEQR = QE1.4...Fish,
     MacroalgaeEQR = QE1.2.1...Macroalgae,
     PhytoplanktonEQR = QE1.1...Phytoplankton,
-    Other.aquatic.flora = QE1.2...Other.aquatic.flora,
+    otherAquaticFlora = QE1.2...Other.aquatic.flora,
     Macrophytes = QE1.2.3...Macrophytes,
     AngiospermsEQR = QE1.2.2...Angiosperms,
     PhytobenthosEQR_E = QE1.2.4...Phytobenthos
   )
 
-#Not Working:
-
-# BQE_wide.testNames <- inner_join(
-#   dat_WFD_TW.wide,
-#   dat_BQE_TW_wideEQS,
-#   by = c("countryCode",
-#     "euSurfaceWaterBodyCode" = "waterBodyIdentifier",
-#     "surfaceWaterBodyTypeCode" = "parameterNCSWaterBodyType",
-#     "cYear" = "phenomenonTimeReferenceYear",
-#     "naturalAWBHMWB" = "parameterNaturalAWBHMWB"
-#   ))
-
-
-
-  # QE1-1 - Phytoplankton	QE1-2 - Other aquatic flora	QE1-2-1 - Macroalgae	QE1-2-2 - Angiosperms	QE1-2-3 - Macrophytes	QE1-2-4 - Phytobenthos	QE1-3 - Benthic invertebrates	QE1-4 - Fish
-  
-
-
-
-
-#2nd merge Biology and SE
-#TW
-BQE-SE.TWsite <- inner_join(BQE_wide,WQ_wide, by = c(monitoringSiteIdentifier,monitoringSiteIdentifierScheme))
-
 #CW
+dat_WFD_CW.wide <- dat_WFD_CW.wide %>%
+  rename(
+    InvertebrateEQR = QE1.3...Benthic.invertebrates,
+    FishEQR = QE1.4...Fish,
+    MacroalgaeEQR = QE1.2.1...Macroalgae,
+    PhytoplanktonEQR = QE1.1...Phytoplankton,
+    otherAquaticFlora = QE1.2...Other.aquatic.flora,
+    Macrophytes = QE1.2.3...Macrophytes,
+    AngiospermsEQR = QE1.2.2...Angiosperms,
+    PhytobenthosEQR_E = QE1.2.4...Phytobenthos
+  )
 
-#ADAPT code below
-# notes <- "2nd cycle (2016) WFD classification (WISE4) linked by WB to WISE6 SoE WQ data (2010-2015) averaged by WB for TW. Created in CombineTraC_SE-BQE.Rmd"
-# writeLines(notes,here("DataCreated","BQESEdatTW_WFD2016_ReadMe.txt"))
-# 
-# #Save determinands used as xlsx workbook
-# wb <- createWorkbook()
-# addWorksheet(wb,"data")
-# addWorksheet(wb, "notes")
-# writeData(wb,"data",BQESEdatTW_WFD2016,startRow = 1,startCol = 1)
-# writeData(wb,"notes",notes,startRow = 1,startCol = 1)
-# saveWorkbook(wb,file =here("DataCreated","BQESEdatTW_WFD2016.xlsx"),overwrite = TRUE)
 ```
 
-Data averaged by WB and Reporting Cycle
-```{r Combine WQ and EQS classifications WB-Cycle}
-#Cycle (2010-2015) 
-#merge Biology and SE for TW
-BQESEdatTW_WFD2016 <- inner_join(dat_WFD_TW_2nd_wide,WQdatTWWB_wide, by = c("euSurfaceWaterBodyCode" = "waterBodyIdentifier","countryCode"))
+```{r prepare data to merge BQE aggrWB from WISE2 & WISE4 }
+#1st check for differences in variables names in wise 4 TW vs CW
+setdiff(names(dat_WFD_TW.wide),names(dat_WFD_CW.wide)) #no difference between TW & CW WISE4
 
-notes <- "2nd cycle (2016) WFD classification (WISE4) linked by WB to WISE6 SoE WQ data (2010-2015) averaged by WB for TW. Created in CombineTraC_SE-BQE.Rmd"
-writeLines(notes,here("DataCreated","BQESEdatTW_WFD2016_ReadMe.txt"))
+#2nd merge TW and CW in WISE4 into unique df
+dat_WFD_TRaC.aggrWB_wideEQS <- bind_rows(TW = dat_WFD_TW.wide, CW = dat_WFD_CW.wide, 
+                                         .id = "parameterWaterBodyCategory") #id source water category dataset
 
-#Save determinands used as xlsx workbook
-wb <- createWorkbook()
-addWorksheet(wb,"data")
-addWorksheet(wb, "notes")
-writeData(wb,"data",BQESEdatTW_WFD2016,startRow = 1,startCol = 1)
-writeData(wb,"notes",notes,startRow = 1,startCol = 1)
-saveWorkbook(wb,file =here("DataCreated","BQESEdatTW_WFD2016.xlsx"),overwrite = TRUE)
+#3rd inspect WISE4 vs WISE2 TRaC aggregated by WB
+names(dat_WFD_TRaC.aggrWB_wideEQS) #WISE4
+names(dat_BQE_TRaC.aggrWB_wideEQS) #WISE2
 
-#merge Biology and SE for CW
-BQESEdatCW_WFD2016 <- inner_join(dat_WFD_CW_2nd_wide,WQdatCWWB_wide, by = c("euSurfaceWaterBodyCode" = "waterBodyIdentifier","countryCode"))
+intersect(names(dat_WFD_TRaC.aggrWB_wideEQS),names(dat_BQE_TRaC.aggrWB_wideEQS)) 
+#equal variable names to match:
+#"parameterWaterBodyCategory" "countryCode" 
+#"InvertebrateEQR"  "FishEQR"    "MacroalgaeEQR"    "PhytoplanktonEQR" "AngiospermsEQR" 
 
-notes <- "2nd cycle (2016) WFD classification (WISE4) linked by WB to WISE6 SoE WQ data (2010-2015) averaged by WB for CW. Created in CombineTraC_SE-BQE.Rmd"
-writeLines(notes,here("DataCreated","BQESEdatCW_WFD2016_ReadMe.txt"))
+symdiff(names(dat_WFD_TRaC.aggrWB_wideEQS),names(dat_BQE_TRaC.aggrWB_wideEQS))
+#equivalent variables to match:
+#"naturalAWBHMWB" =  "parameterNaturalAWBHMWB" 
+#"euSurfaceWaterBodyCode" = "waterBodyIdentifier"
+#"surfaceWaterBodyTypeCode" = "parameterNCSWaterBodyType"
 
-#Save determinands used as xlsx workbook
-wb <- createWorkbook()
-addWorksheet(wb,"data")
-addWorksheet(wb, "notes")
-writeData(wb,"data",BQESEdatCW_WFD2016,startRow = 1,startCol = 1)
-writeData(wb,"notes",notes,startRow = 1,startCol = 1)
-saveWorkbook(wb,file =here("DataCreated","BQESEdatCW_WFD2016.xlsx"),overwrite = TRUE)
+#missing BQEs to include 
+# "PhytobenthosEQR_E", "otherAquaticFlora", "Macrophytes"    
+
+#diff vars ADD:
+#"phenomenonTimeReferenceYear" ,  "cYear"  
+#"waterBodyName", "surfaceWaterBodyIntercalibrationType","surfaceWaterBodyIntercalibrationTypeCode"
+
+#diff vars DROP:
+unique(dat_BQE_TRaC.aggrWB_wideEQS$waterBodyIdentifierScheme)     
+# waterBodyIdentifierScheme : in wise 2 
+# -cArea, -cLength : in wise 4
+
+dat_WFD_TRaC.aggrWB_wideEQS <- dat_WFD_TRaC.aggrWB_wideEQS %>% #WISE4 clean
+  select(-cArea, -cLength) 
+
+# WISE2 clean data and aggregate by WFD Cycle BEFORE merge with WISE4
+# add WFD Cycle year variable to wise 2 "cYear"
+cYear <- list(
+  `baseline`= 2000:2003,
+  `2010` = 2004:2009,
+  `2016` = 2010:2015,
+  `2022` = 2016:2021,
+  `2028` = 2022:2027
+)
+
+dat_BQE_TRaC.aggrWB_Cycle <- dat_BQE_TRaC.aggrWB_wideEQS %>% # wise2
+  select(-waterBodyIdentifierScheme) %>%
+  mutate(cYear=case_when(
+    phenomenonTimeReferenceYear %in% cYear$baseline ~ 2000,
+    phenomenonTimeReferenceYear %in% cYear$`2010` ~ 2010,
+    phenomenonTimeReferenceYear %in% cYear$`2016` ~ 2016,
+    phenomenonTimeReferenceYear %in% cYear$`2022` ~ 2022,
+    phenomenonTimeReferenceYear %in% cYear$`2028` ~ 2028,
+    TRUE ~ NA_real_
+    )
+    )
+
+names(dat_BQE_TRaC.aggrWB_Cycle)
+
+#4th summarise WISE2 BQE EQS data per per WB and WFD cycle
+#to include mean EQS value rounded per BQE + count samples
+meanEQS_TRaC_Cycle_WB_wise2 <- dat_BQE_TRaC.aggrWB_Cycle %>%
+  group_by(parameterWaterBodyCategory, cYear, countryCode, parameterNCSWaterBodyType, waterBodyIdentifier, waterBodyName,parameterNaturalAWBHMWB) %>%
+  summarise(
+    # mean values for all EQS rounded to nearest integer, then clipped to 1–5 scale
+    across(
+      ends_with("EQR"),
+      ~ {
+        m <- mean(.x, na.rm = TRUE)
+        if (is.nan(m)) return(NA_real_)     # keep NA
+        m_round <- round(m, 0)
+        m_safe  <- min(max(m_round, 1), 5) # force between 1 and 5
+        m_safe
+      },
+      .names = "{.col}_mean"
+    ),
+    
+    # count of non-missing records per EQS value
+    across(
+      ends_with("EQR"),
+      ~ sum(!is.na(.x)),
+      .names = "{.col}_n"
+    ),
+    
+    .groups = "drop"
+  )
+
+
+
+#5th join tables WISE4 vs WISE2 TRaC aggregated by WB
+names (meanEQS_TRaC_Cycle_WB_wise2) #WISE2
+names(dat_WFD_TRaC.aggrWB_wideEQS) #WISE4
+
+meanEQS_TRaC_Cycle_WB_wise2_clean<- meanEQS_TRaC_Cycle_WB_wise2 %>% 
+  select(-PhytoplanktonEQR_n, -MacroalgaeEQR_n, -InvertebrateEQR_n, -AngiospermsEQR_n, -FishEQR_n) #drop count of samples to mean EQS in WISE2
+
+symdiff(names(meanEQS_TRaC_Cycle_WB_wise2_clean),names(dat_WFD_TRaC.aggrWB_wideEQS)) #check all vars not shared between WISE4 & WISE2
+ 
+  
+```
+
+```{r merge WISE4 & WISE2 TRaC aggregated by WB and per Cycle}
+ 
+#merge WISE4 & WISE2 TRaC aggregated by WB full_join to keep all data
+  dat_EQS_aggrWB_since2010  <- full_join(meanEQS_TRaC_Cycle_WB_wise2_clean, dat_WFD_TRaC.aggrWB_wideEQS,
+          by=c("parameterWaterBodyCategory",
+               "cYear",
+               "countryCode",
+               "waterBodyIdentifier"="euSurfaceWaterBodyCode", #establish equivalence where names differ
+               "parameterNCSWaterBodyType"="surfaceWaterBodyTypeCode",
+               "parameterNaturalAWBHMWB"="naturalAWBHMWB",
+               "PhytoplanktonEQR_mean"="PhytoplanktonEQR",
+               "MacroalgaeEQR_mean"="MacroalgaeEQR",
+               "InvertebrateEQR_mean"="InvertebrateEQR",
+               "AngiospermsEQR_mean" = "AngiospermsEQR",
+               "FishEQR_mean"="FishEQR"
+               )
+  )
+  
+  #rename variables for accuracy, EQS not EQR
+  dat_EQS_aggrWB_since2010 <- dat_EQS_aggrWB_since2010 %>%
+    rename( 
+    "PhytoplanktonEQS"="PhytoplanktonEQR_mean",
+    "MacroalgaeEQS"="MacroalgaeEQR_mean",
+    "InvertebrateEQS"="InvertebrateEQR_mean",
+    "AngiospermsEQS"="AngiospermsEQR_mean",
+    "FishEQS"="FishEQR_mean",
+    "otherAquaticFloraEQS"="otherAquaticFlora",
+    "MacrophytesEQS"= "Macrophytes",
+    "PhytobenthosE_EQS"="PhytobenthosEQR_E"
+  )
+  
+ #checks
+ length(unique(dat_EQS_aggrWB_since2010$surfaceWaterBodyIntercalibrationTypeCode))
+ unique(dat_EQS_aggrWB_since2010$surfaceWaterBodyIntercalibrationTypeCode)
+ 
+ #RW observations misclassified as CW, dropped
+    dat_EQS_aggrWB_since2010 <- dat_EQS_aggrWB_since2010 %>%
+      filter(!surfaceWaterBodyIntercalibrationTypeCode %in% c("RW-R-M4", "RW-R-M1"))
+
+#fill in missing ICtype code for  WISE2 periods using WISE4 available IC common Types codes per water body
+    dat_EQS_aggrWB_since2010_ICtypes <- dat_EQS_aggrWB_since2010 %>%
+  group_by(waterBodyIdentifier) %>%
+  # Fill missing codes using available IC TypeCode for the same water body
+  mutate(
+    surfaceWaterBodyIntercalibrationTypeCode = 
+      if_else(
+        is.na(surfaceWaterBodyIntercalibrationTypeCode),
+        first(na.omit(surfaceWaterBodyIntercalibrationTypeCode)),
+        surfaceWaterBodyIntercalibrationTypeCode
+      )
+  ) %>%
+  ungroup()
+   
+#check
+dat_EQS_aggrWB_since2010_ICtypes %>% 
+      group_by(waterBodyIdentifier,surfaceWaterBodyIntercalibrationTypeCode,cYear) %>%
+    summarise(n=n(), .groups = "drop")%>%
+      arrange(desc(cYear), desc(n))
+```
+
+## C. Combine WFD TraC Supporting and Biological QE data
+### C1. Combine WQ and BQE data for TraC Waters
+Data averaged by Site and year - INCOMPLETE
+```{r WQ SiteMean-Yearly to Wide format - INCOMPLETE}
+# #TW
+# Det.TW <- levels(factor(WQdatTWSiteMeanYearly.wb$Det))
+# 
+# WQdatTWSiteMeanYearly.wb <- WQdatTWSiteMeanYearly.wb %>%
+#   mutate(phenomenonTimeReferenceYear = as.integer(round(phenomenonTimeReferenceYear)))
+# 
+# WQdatTWSiteMeanYearly.wide <- WQdatTWSiteMeanYearly.wb %>%
+#   select(countryCode,monitoringSiteIdentifier,monitoringSiteIdentifierScheme,phenomenonTimeReferenceYear,Det,
+#          resultMeanValue,procedureAnalysedMatrix,parameterSampleDepth,parameterSamplingPeriod,
+#          waterBodyName,waterBodyIdentifier,naturalAWBHMWB,surfaceWaterBodyTypeCode,Created) %>%
+#    pivot_wider(names_from = Det, values_from = resultMeanValue )  %>% 
+#    rename_with(~paste0(.x,"_Mn"),any_of(Det.TW))#all_of(Det.TW)
+# 
+# #CW
+# Det.CW <- levels(factor(WQdatCWSiteMeanYearly.wb$Det))
+# 
+# WQdatCWSiteMeanYearly.wb <- WQdatCWSiteMeanYearly.wb %>%
+#   mutate(phenomenonTimeReferenceYear = as.integer(round(phenomenonTimeReferenceYear)))
+# 
+# WQdatCWSiteMeanYearly.wide <- WQdatCWSiteMeanYearly.wb %>%
+#   select(countryCode,monitoringSiteIdentifier,monitoringSiteIdentifierScheme,phenomenonTimeReferenceYear,Det,
+#          resultMeanValue,procedureAnalysedMatrix,parameterSampleDepth,parameterSamplingPeriod,
+#          waterBodyName,waterBodyIdentifier,naturalAWBHMWB,surfaceWaterBodyTypeCode,Created) %>%
+#    pivot_wider(names_from = Det, values_from = resultMeanValue )  %>% 
+#    rename_with(~paste0(.x,"_Mn"),any_of(Det.CW))#all_of(Det.TW)
+
+```
+
+```{r Combine WQ and EQS classifications per Site-Year - INCOMPLETE}
+# 
+# #wise6
+# WQdatTWSiteMeanYearly.wide
+# WQdatCWSiteMeanYearly.wide 
+# 
+# 
+# 
+# #Not Working:
+# 
+# # BQE_wide.testNames <- inner_join(
+# #   dat_WFD_TW.wide,
+# #   dat_BQE_TW_wideEQS,
+# #   by = c("countryCode",
+# #     "euSurfaceWaterBodyCode" = "waterBodyIdentifier",
+# #     "surfaceWaterBodyTypeCode" = "parameterNCSWaterBodyType",
+# #     "cYear" = "phenomenonTimeReferenceYear",
+# #     "naturalAWBHMWB" = "parameterNaturalAWBHMWB"
+# #   ))
+# 
+# 
+# 
+#   # QE1-1 - Phytoplankton	QE1-2 - Other aquatic flora	QE1-2-1 - Macroalgae	QE1-2-2 - Angiosperms	QE1-2-3 - Macrophytes	QE1-2-4 - Phytobenthos	QE1-3 - Benthic invertebrates	QE1-4 - Fish
+#   
+# 
+# 
+# 
+# 
+# #2nd merge Biology and SE
+# #TW
+# BQE-SE.TWsite <- inner_join(BQE_wide,WQ_wide, by = c(monitoringSiteIdentifier,monitoringSiteIdentifierScheme))
+# 
+# #CW
+# 
+# #ADAPT code below
+# # notes <- "2nd cycle (2016) WFD classification (WISE4) linked by WB to WISE6 SoE WQ data (2010-2015) averaged by WB for TW. Created in CombineTraC_SE-BQE.Rmd"
+# # writeLines(notes,here("DataCreated","BQESEdatTW_WFD2016_ReadMe.txt"))
+# # 
+# # #Save determinands used as xlsx workbook
+# # wb <- createWorkbook()
+# # addWorksheet(wb,"data")
+# # addWorksheet(wb, "notes")
+# # writeData(wb,"data",BQESEdatTW_WFD2016,startRow = 1,startCol = 1)
+# # writeData(wb,"notes",notes,startRow = 1,startCol = 1)
+# # saveWorkbook(wb,file =here("DataCreated","BQESEdatTW_WFD2016.xlsx"),overwrite = TRUE)
+```
+
+Data averaged by WB and Reporting Cycle - DONE!
+```{r prepapre to combine WQ and EQS classifications WB-Cycle}
+#prepare dfs for merge per WFD Cycle
+#TW
+BQE_TWWB_Cycle <- dat_EQS_aggrWB_since2010_ICtypes%>%filter(parameterWaterBodyCategory=="TW")
+WQ_TWWB_Cycle <- WQ_TWWB_master_df
+#CW
+BQE_CWWB_Cycle <- dat_EQS_aggrWB_since2010_ICtypes %>%filter(parameterWaterBodyCategory=="CW")
+WQ_CWWB_Cycle <- WQ_CWWB_master_df
+
+# add WFD Cycle cYear to replace period in WQ data using values previously created
+cYear #check list
+
+unique(WQ_TWWB_Cycle$Period) #check periods to match cYear
+#"2000_2003" "2004_2009" "2010_2015" "2016_2021" ">2022"   
+
+#TW
+WQ_TWWB_Cycle <- WQ_TWWB_Cycle %>%
+  mutate(cYear=case_when(
+    Period == "2000_2003" ~ 2000,
+    Period == "2004_2009" ~ 2010,
+    Period == "2010_2015" ~ 2016,
+    Period == "2016_2021" ~ 2022,
+    Period == ">2022" ~ 2028,
+    TRUE ~ NA_real_
+    )
+    ) %>%
+  select(-Period)
+
+WQ_TWWB_Cycle_clean <- WQ_TWWB_Cycle %>%  select(-nYears)
+
+
+#CW
+WQ_CWWB_Cycle <- WQ_CWWB_Cycle %>% 
+  mutate(cYear=case_when(
+    Period == "2000_2003" ~ 2000,
+    Period == "2004_2009" ~ 2010,
+    Period == "2010_2015" ~ 2016,
+    Period == "2016_2021" ~ 2022,
+    Period == ">2022" ~ 2028,
+    TRUE ~ NA_real_
+    )
+    ) %>%
+  select(-Period)
+
+
+WQ_CWWB_Cycle_clean <- WQ_CWWB_Cycle %>%  select(-nYears)
+
+#inspect variables in both dfs before merge
+symdiff(names(BQE_TWWB_Cycle),names(WQ_TWWB_Cycle_clean))
+intersect(names(BQE_TWWB_Cycle),names(WQ_TWWB_Cycle_clean))
+
+#drop "parameterWaterBodyCategory" var BQE data:
+BQE_TWWB_Cycle_clean <- BQE_TWWB_Cycle %>%
+  select(-parameterWaterBodyCategory)
+
+BQE_CWWB_Cycle_clean <- BQE_CWWB_Cycle %>%
+  select(-parameterWaterBodyCategory)
+ 
+#TW
+BQE_waterbodiesTW <- list(unique(BQE_TWWB_Cycle_clean$waterBodyIdentifier))
+SE_waterbodiesTW <- list(unique(WQ_TWWB_Cycle_clean$waterBodyIdentifier))
+length(intersect(BQE_waterbodiesTW[[1]],SE_waterbodiesTW[[1]])) #check common WBs n=273
+
+#CW 
+BQE_waterbodiesCW <- list(unique(BQE_CWWB_Cycle_clean$waterBodyIdentifier))
+SE_waterbodiesCW <- list(unique(WQ_CWWB_Cycle_clean$waterBodyIdentifier))
+length(intersect(BQE_waterbodiesCW[[1]],SE_waterbodiesCW[[1]])) #check common WBs n=360
+```
+
+### C2. Final merge WQ and BQE data per WB and Reporting Cycle
+```{r Final merge WQ and BQE data per WB-Cycle}
+#merge Biology and SE using inner_join to keep only BQE observations that have corresponding data in WQ
+#TW
+BQESE.TW <- inner_join(
+  BQE_TWWB_Cycle_clean,
+  WQ_TWWB_Cycle_clean, 
+  by = c("waterBodyIdentifier", "cYear", "countryCode")) %>%
+ mutate(DateCreated = Sys.time())
+
+#order df variables :
+BQESE.TW <- BQESE.TW %>%
+  rename(
+    waterBodyName.WISEbio = waterBodyName.x,
+    waterBodyName.WISEse  = waterBodyName.y
+  ) %>%
+  select(
+    cYear, countryCode, parameterNaturalAWBHMWB, 
+    waterBodyIdentifier, waterBodyName.WISEbio, waterBodyName.WISEse,
+    parameterNCSWaterBodyType, surfaceWaterBodyIntercalibrationType,
+    surfaceWaterBodyIntercalibrationTypeCode,
+    matches("EQS") %>% sort(), # all columns containing "EQS", alphabetical
+    matches("_Mn") %>% sort(),  # all columns containing "_Mn", alphabetical
+    "DateCreated", # last column
+    everything()
+  )
+
+notes <- "All cycles WFD TW EQS classifications (WISE4&2) aggr by WB and WFD Cycle to WISE6 SoE WQ data averaged by WB and Cycle. Created in CombineTraC_SE-BQE.Rmd"
+writeLines(notes,here("DataCreated","BQESEdatTW_WFDallCycles_ReadMe.txt"))
+
+#Save BQE-SE combined data as xlsx workbook
+wbAllTW_WB <- createWorkbook()
+addWorksheet(wbAllTW_WB,"data")
+addWorksheet(wbAllTW_WB, "notes")
+writeData(wbAllTW_WB,"data",BQESE.TW,startRow = 1,startCol = 1)
+writeData(wbAllTW_WB,"notes",notes,startRow = 1,startCol = 1)
+saveWorkbook(wbAllTW_WB,file =here("DataCreated","BQESEdatTW_WFDallCycles.xlsx"),overwrite = TRUE)
+
+#Save rds and csv also
+saveRDS(BQESE.TW, here("Data","BQESEdatTW_WFDallCyclesAggrWB.rds"))
+
+#CW
+BQESE.CW <- inner_join(
+  BQE_CWWB_Cycle_clean,
+  WQ_CWWB_Cycle_clean, 
+  by = c("waterBodyIdentifier", "cYear", "countryCode")) %>%
+ mutate(DateCreated = Sys.time())
+
+#order df variables :
+BQESE.CW <- BQESE.CW %>%
+  rename(
+    waterBodyName.WISEbio = waterBodyName.x,
+    waterBodyName.WISEse  = waterBodyName.y
+  ) %>%
+  select(
+    cYear, countryCode, parameterNaturalAWBHMWB, 
+    waterBodyIdentifier, waterBodyName.WISEbio, waterBodyName.WISEse,
+    parameterNCSWaterBodyType, surfaceWaterBodyIntercalibrationType,
+    surfaceWaterBodyIntercalibrationTypeCode,
+    matches("EQS") %>% sort(), # all columns containing "EQS", alphabetical
+    matches("_Mn") %>% sort(),  # all columns containing "_Mn", alphabetical
+    "DateCreated", # last column
+    everything()
+  )
+
+notes <- "All cycles WFD CW EQS classifications (WISE4&2) aggr by WB and WFD Cycle to WISE6 SoE WQ data averaged by WB and Cycle. Created in CombineTraC_SE-BQE.Rmd"
+writeLines(notes,here("DataCreated","BQESEdatCW_WFDallCycles_ReadMe.txt"))
+
+#Save BQE-SE combined data as xlsx workbook
+wbAllCW_WB <- createWorkbook()
+addWorksheet(wbAllCW_WB,"data")
+addWorksheet(wbAllCW_WB, "notes")
+writeData(wbAllCW_WB,"data",BQESE.CW,startRow = 1,startCol = 1)
+writeData(wbAllCW_WB,"notes",notes,startRow = 1,startCol = 1)
+saveWorkbook(wbAllCW_WB,file =here("DataCreated","BQESEdatCW_WFDallCycles.xlsx"),overwrite = TRUE)
+
+#Save rds and csv also
+saveRDS(BQESE.CW, here("Data","BQESEdatCW_WFDallCyclesAggrWB.rds"))
 ```
 
