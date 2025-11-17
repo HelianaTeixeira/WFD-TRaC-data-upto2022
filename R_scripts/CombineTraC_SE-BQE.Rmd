@@ -1229,10 +1229,40 @@ length(intersect(BQE_waterbodiesCW[[1]],SE_waterbodiesCW[[1]])) #check common WB
 ### C2. Final merge WQ and BQE data per WB and Reporting Cycle
 ```{r Final merge WQ and BQE data per WB-Cycle}
 #merge Biology and SE using inner_join to keep only BQE observations that have corresponding data in WQ
+
+#1st before joining checka for and summarise any duplicates
+#WQ dat
+WQ_TWWB_unique <- WQ_TWWB_Cycle_clean %>%
+  group_by(countryCode, waterBodyIdentifier, cYear) %>%
+  summarise(across(ends_with("_Mn"), ~ mean(.x, na.rm = TRUE)),
+            across(-ends_with("_Mn"), ~ dplyr::first(.x)),
+            .groups = "drop")
+
+WQ_CWWB_unique <- WQ_CWWB_Cycle_clean %>%
+  group_by(countryCode, waterBodyIdentifier, cYear) %>%
+  summarise(across(ends_with("_Mn"), ~ mean(.x, na.rm = TRUE)),
+            across(-ends_with("_Mn"), ~ dplyr::first(.x)),
+            .groups = "drop")
+
+#BQE dat
+BQE_TWWB_unique <- BQE_TWWB_Cycle_clean %>%
+  group_by(countryCode, waterBodyIdentifier, cYear) %>%
+  summarise(across(contains("EQS"), ~ mean(.x, na.rm = TRUE)),
+            across(-contains("EQS"), ~ dplyr::first(.x)),
+            .groups = "drop")
+
+BQE_CWWB_unique <- BQE_CWWB_Cycle_clean %>%
+  group_by(countryCode, waterBodyIdentifier, cYear) %>%  
+  summarise(across(contains("EQS"), ~ mean(.x, na.rm = TRUE)),
+            across(-contains("EQS"), ~ dplyr::first(.x)),
+            .groups = "drop")
+    
+  
+#2nd join BQE and WQ data
 #TW
 BQESE.TW <- inner_join(
-  BQE_TWWB_Cycle_clean,
-  WQ_TWWB_Cycle_clean, 
+  BQE_TWWB_unique,
+  WQ_TWWB_unique,
   by = c("waterBodyIdentifier", "cYear", "countryCode")) %>%
  mutate(DateCreated = Sys.time())
 
@@ -1269,8 +1299,8 @@ saveRDS(BQESE.TW, here("Data","BQESEdatTW_WFDallCyclesAggrWB.rds"))
 
 #CW
 BQESE.CW <- inner_join(
-  BQE_CWWB_Cycle_clean,
-  WQ_CWWB_Cycle_clean, 
+  BQE_CWWB_unique,
+  WQ_CWWB_unique, 
   by = c("waterBodyIdentifier", "cYear", "countryCode")) %>%
  mutate(DateCreated = Sys.time())
 
@@ -1304,5 +1334,79 @@ saveWorkbook(wbAllCW_WB,file =here("DataCreated","BQESEdatCW_WFDallCycles.xlsx")
 
 #Save rds and csv also
 saveRDS(BQESE.CW, here("Data","BQESEdatCW_WFDallCyclesAggrWB.rds"))
+```
+
+#D1. Duplicates report if desired
+Data averaged by WB and Reporting Cycle
+```{r BQE and WQ AggrWB and Cycle data DUPLICTAES report}
+
+#------------------------------
+# Function to detect duplicates
+#------------------------------
+find_duplicates <- function(df, df_name,
+                            key_cols = c("waterBodyIdentifier", "cYear")) {
+  
+  # 1. Duplicate keys only
+  dup_keys <- df %>%
+    count(across(all_of(key_cols))) %>%
+    filter(n > 1) %>%
+    arrange(desc(n))
+  
+  # 2. Full duplicated rows for those keys
+  dup_rows <- df %>%
+    semi_join(dup_keys, by = key_cols) %>%
+    arrange(across(all_of(key_cols)))
+  
+  # 3. For each duplicate block, detect columns with different values
+  differing_vars <- dup_rows %>%
+    group_by(across(all_of(key_cols))) %>%
+    summarise(across(everything(), ~ n_distinct(.x, na.rm = TRUE)),
+              .groups = "drop") %>%
+    mutate(across(everything(), ~ ifelse(.x > 1, TRUE, FALSE))) %>%
+    pivot_longer(-all_of(key_cols), names_to = "variable",
+                 values_to = "different") %>%
+    filter(different)
+
+  # return list
+  list(
+    dataset = df_name,
+    duplicate_keys = dup_keys,
+    duplicate_rows = dup_rows,
+    differing_columns = differing_vars
+  )
+}
+
+#-------------------------------------
+# Apply to all four datasets
+#-------------------------------------
+
+duplicate_report <- list(
+  BQE_TW = find_duplicates(BQE_TWWB_Cycle_clean, "BQE_TWWB_Cycle_clean"),
+  BQE_CW = find_duplicates(BQE_CWWB_Cycle_clean, "BQE_CWWB_Cycle_clean"),
+  WQ_TW  = find_duplicates(WQ_TWWB_Cycle_clean,  "WQ_TWWB_Cycle_clean"),
+  WQ_CW  = find_duplicates(WQ_CWWB_Cycle_clean,  "WQ_CWWB_Cycle_clean")
+)
+
+#-------------------------------------
+# Write to Excel (optional)
+#-------------------------------------
+wb <- createWorkbook()
+
+for (nm in names(duplicate_report)) {
+  rep <- duplicate_report[[nm]]
+
+  addWorksheet(wb, paste0(nm, "_keys"))
+  writeData(wb, paste0(nm, "_keys"), rep$duplicate_keys)
+
+  addWorksheet(wb, paste0(nm, "_rows"))
+  writeData(wb, paste0(nm, "_rows"), rep$duplicate_rows)
+
+  addWorksheet(wb, paste0(nm, "_diff"))
+  writeData(wb, paste0(nm, "_diff"), rep$differing_columns)
+}
+
+saveWorkbook(wb, here("DataCreated","Duplicate_Report_TW_CW_BQE_WQ.xlsx"), overwrite = TRUE)
+
+
 ```
 
