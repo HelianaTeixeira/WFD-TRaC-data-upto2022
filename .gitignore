@@ -6,7 +6,7 @@
 *.sqlite
 /Databases/
 /DataCreated/
-/helps/
+/R_scripts/helps/
 
 # Output files
 *.html
