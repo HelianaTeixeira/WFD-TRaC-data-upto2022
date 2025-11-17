@@ -1283,15 +1283,29 @@ BQESE.TW <- BQESE.TW %>%
     everything()
   )
 
+# --- Function to clean NA for Excel ---
+fix_excel_na <- function(df) {
+  df %>%
+    mutate(across(where(is.numeric),
+                  ~ ifelse(is.na(.x), "", .x)))
+}
+
+
 notes <- "All cycles WFD TW EQS classifications (WISE4&2) aggr by WB and WFD Cycle to WISE6 SoE WQ data averaged by WB and Cycle. Created in CombineTraC_SE-BQE.Rmd"
 writeLines(notes,here("DataCreated","BQESEdatTW_WFDallCycles_ReadMe.txt"))
 
 #Save BQE-SE combined data as xlsx workbook
 wbAllTW_WB <- createWorkbook()
+
 addWorksheet(wbAllTW_WB,"data")
 addWorksheet(wbAllTW_WB, "notes")
-writeData(wbAllTW_WB,"data",BQESE.TW,startRow = 1,startCol = 1)
+
+# Clean NA before writing
+BQESE.TW_export <- fix_excel_na(BQESE.TW)
+
+writeData(wbAllTW_WB,"data",BQESE.TW_export,startRow = 1,startCol = 1)
 writeData(wbAllTW_WB,"notes",notes,startRow = 1,startCol = 1)
+
 saveWorkbook(wbAllTW_WB,file =here("DataCreated","BQESEdatTW_WFDallCycles.xlsx"),overwrite = TRUE)
 
 #Save rds and csv also
@@ -1326,10 +1340,17 @@ writeLines(notes,here("DataCreated","BQESEdatCW_WFDallCycles_ReadMe.txt"))
 
 #Save BQE-SE combined data as xlsx workbook
 wbAllCW_WB <- createWorkbook()
+
 addWorksheet(wbAllCW_WB,"data")
 addWorksheet(wbAllCW_WB, "notes")
-writeData(wbAllCW_WB,"data",BQESE.CW,startRow = 1,startCol = 1)
+
+# Clean NA before writing
+BQESE.TW_export <- fix_excel_na(BQESE.CW)
+
+
+writeData(wbAllCW_WB,"data",BQESE.TW_export,startRow = 1,startCol = 1)
 writeData(wbAllCW_WB,"notes",notes,startRow = 1,startCol = 1)
+
 saveWorkbook(wbAllCW_WB,file =here("DataCreated","BQESEdatCW_WFDallCycles.xlsx"),overwrite = TRUE)
 
 #Save rds and csv also
