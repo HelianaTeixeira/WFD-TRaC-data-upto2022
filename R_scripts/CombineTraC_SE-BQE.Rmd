@@ -1094,8 +1094,16 @@ Data averaged by Site and year - INCOMPLETE
 #    pivot_wider(names_from = Det, values_from = resultMeanValue )  %>% 
 #    rename_with(~paste0(.x,"_Mn"),any_of(Det.TW))#all_of(Det.TW)
 # 
-# #CW
-# Det.CW <- levels(factor(WQdatCWSiteMeanYearly.wb$Det))
+#CW
+#import data
+BQEdat <-"/Users/helianateixeira/Rdir/WFD-TRaC-data-upto2022/DataCreated/BQEdatCW_siteMean_year_wise2.xlsx"
+SEdat <- "/Users/helianateixeira/Rdir/WFD-TRaC-data-upto2022/DataCreated/WQdatCW_siteMean_year.xlsx"
+Dets <- "/Users/helianateixeira/Rdir/WFD-TRaC-data-upto2022/Data/Determinands.xlsx"
+
+BQEsiteMnYr <- read.xlsx(BQEdat) #here("DataCreated","BQEdatCW_siteMean_year_wise2.xlsx")
+SEsiteMnYr <- read.xlsx(SEdat) #here("DataCreated","WQdatCW_siteMean_year.xlsx")
+Dets <- read.xlsx(Dets) #here("Data","Determinands.xlsx")
+  #levels(factor(WQdatCWSiteMeanYearly.wb$Det))
 # 
 # WQdatCWSiteMeanYearly.wb <- WQdatCWSiteMeanYearly.wb %>%
 #   mutate(phenomenonTimeReferenceYear = as.integer(round(phenomenonTimeReferenceYear)))
