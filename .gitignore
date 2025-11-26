@@ -10,7 +10,7 @@
 
 # Output files
 *.html
-/Figures/
+/Results/
 
 # Session Data files
 .RData
