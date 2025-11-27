@@ -38,7 +38,7 @@
 # Data is reported by EEA member countries as individual samples from monitoring sites in the DisaggregatedData table 
 # or as annual aggregates of samples from monitoring sites in the AggregatedData table. 
 # Therefore data found in one table is not found in the other, and visa versa. 
-# Data in the the AggregatedDataByWaterBody is mostly historical (HT: and currenlty only has GW information. discarded for this work).
+# Data in the the AggregatedDataByWaterBody is mostly historical (HT: and currently only has GW information. discarded for this work).
 
 # For more details see the 'Discodata user guide' in the Documents section.
 

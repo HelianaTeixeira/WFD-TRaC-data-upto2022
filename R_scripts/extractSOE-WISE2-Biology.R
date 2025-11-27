@@ -43,6 +43,10 @@ levels(as.factor(WISE2_Biology_Site$parameterWaterBodyCategory)) #"CW" "LW" "RW"
 #select TRaC data only
 WISE2_Biology_Site.TRaC <- WISE2_Biology_Site %>% 
   filter(parameterWaterBodyCategory == "CW" | parameterWaterBodyCategory == "TW")
+
+rm(WISE2_Biology_Site) #free memory
+gc() #garbage clean up after a large object has been removed
+
 #some checks:
 levels(as.factor(WISE2_Biology_Site.TRaC$countryCode))
 #"BE" "BG" "EL" "ES" "IT" "LT" "LV" "NL" "NO" "PL" "PT" "SE" "UK" - data for 13 countries
@@ -61,6 +65,10 @@ levels(as.factor(WISE2_Biology_AggrWB$parameterWaterBodyCategory)) #"CW" "LW" "R
 #select TRaC data only
 WISE2_Biology_AggrWB.TRaC <- WISE2_Biology_AggrWB %>% 
   filter(parameterWaterBodyCategory == "CW" | parameterWaterBodyCategory == "TW")
+
+rm(WISE2_Biology_AggrWB) #free memory
+gc() #garbage clean up after a large object has been removed
+
 #some checks:
 levels(as.factor(WISE2_Biology_AggrWB.TRaC$countryCode))
 #"EE" "ES" "IE" "IT" "LT" "LV" "MT" "PL" "PT" "SI" - 4 additional countries if WB aggregated, countries:"EE" "IE" "MT" "SI"
@@ -86,6 +94,9 @@ spatial_dat <- spatial_dat %>%
            specialisedZoneType == "transitionalWaterBody") %>% filter(!is.na(monitoringSiteIdentifier) & !is.na(waterBodyIdentifier)) 
 
 spatial_dat %>% count(monitoringSiteIdentifier=="") # n=636 missing monitoring site identifier == ""
+
+rm(WISE_SOE_Spatial) #free memory
+gc() #garbage clean up after a large object has been removed
 
 ## select spatial info to data to join
 spatial_dat_shrt <-spatial_dat %>% 
