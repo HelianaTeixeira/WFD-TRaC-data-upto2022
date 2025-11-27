@@ -38,20 +38,20 @@ contains: Annually aggregated biological ecological quality ratio (EQR) data fro
 - **WISE6:** Extracting a set of TRAC Water Quality (WQ) summary metrics for an appropriate set of supporting elements (SE), from the EEA state of the environment (SoE) WISE 6 datadase. Waterbase - Water Quality ICM, 2024; available online from 2nd July 2025. Temporal range 1899-2024. The dataset contains time series of nutrients, organic matter, hazardous substances, pesticides and other chemicals in rivers, lakes, groundwater, transitional, coastal and marine waters.
 version: "latest" WISE SOE Waterbase T available in 2025
 
-The database is split into different datasets: 
+  The database is split into different datasets: 
   - ds1: *DisaggregatedData*
-source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_T_WISE6_DisaggregatedData 
+  source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_T_WISE6_DisaggregatedData 
 
   - ds2: *AggregatedData*
-source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_T_WISE6_AggregatedData 
+  source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_T_WISE6_AggregatedData 
 
-Data is reported by EEA member countries as individual samples from monitoring sites in the DisaggregatedData table or as annual aggregates of samples from monitoring sites in the AggregatedData table. Therefore data found in one table is not found in the other, and visa versa. 
+  Data is reported by EEA member countries as individual samples from monitoring sites in the DisaggregatedData table or as annual aggregates of samples from monitoring sites in the AggregatedData table. Therefore data found in one table is not found in the other, and visa versa. 
 
 note3: SE Data in AggregatedDataByWaterBody dataset is mostly historical and currently only has GW information, thus discarded for this work.
 
   - **Spatial data** Extracting also related spatial information from: 
-source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_S_WISE_SpatialObject_DerivedData
-contains: List of spatial object identifiers present in the WISE SOE dataset tables. Selected information reported through WFD or WISE5 spatial data reporting.
+  source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_S_WISE_SpatialObject_DerivedData
+  contains: List of spatial object identifiers present in the WISE SOE dataset tables. Selected information reported through WFD or WISE5 spatial data reporting.
 
 ## Procedure for data extraction
 **1st EXTRACT DATA:** the extract *R scripts* in subdirectory R_scripts (WFD-TRaC-data-upto2022/R_scripts/"extract?-?-?.R") were used to extract data from each of the data sources above indicated for transitional (TW) and coastal (CW) water categories, selecting variables of interest and merging information from different tables (e.g. samples' Status classification and respective Typology information). More details in each script, including of corrections performed (scripts require download of the databases or, alternatively, adjustments to the script to access the databases online):
@@ -60,9 +60,16 @@ contains: List of spatial object identifiers present in the WISE SOE dataset tab
   - extractSOE-WISE2-Biology.R
   - extractSOE-WISE6-SE.R
 
-**2nd COMBINE BIOLOGY & SE DATA:** the script WFD-TRaC-data-upto2022/R_scripts/"CombineTraC_SE-BQE.Rmd" was used to merge the extracted water quality data (WQ from WISE-6) for selected supporting elements (SE, i.e. nutrients and other physico-chemical parameters) to the biological classifications (BQE from WISE-4 (only EQS) & WISE-2 (both EQR and EQS)), for both TRaC water categories (TW & CW), using samples' code. More details within the script, including of corrections performed.
+**2nd Prepare SE DATA:** 
 
-## OUTPUT: Overall, separate datasets were created (WFD-TRaC-data-upto2022/DataCreated) regarding each water category (TW & CW) for each WFD reporting cycle: 2010 (1st cycle), 2016 (2nd cycle) and also for the data already available for the 3rd cycle:
+**3rd Prepare Biological DATA:** 
+
+**4th COMBINE BIOLOGY & SE DATA:** the script WFD-TRaC-data-upto2022/R_scripts/"CombineTraC_SE-BQE.Rmd" was used to merge the extracted water quality data (WQ from WISE-6) for selected supporting elements (SE, i.e. nutrients and other physico-chemical parameters) to the biological classifications (BQE from WISE-4 (only EQS) & WISE-2 (both EQR and EQS)), for both TRaC water categories (TW & CW), using samples' code. More details within the script, including of corrections performed.
+
+## OUTPUT Datasets: 
+Overall, separate datasets were created (subdirectory WFD-TRaC-data-upto2022/DataCreated) for each water category (TW & CW) per WFD reporting cycle: 2010 (1st cycle), 2016 (2nd cycle) and 2022 (3rd cycle):
+
+(datasets need update as they changed format)
 1. BQESEdatTW_WFD2010.xlsx - TW 2010 to be added
 2. BQESEdatCW_WFD2010.xlsx - CW 2010 to be added
 3. BQESEdatTW_WFD2016.xlsx (n=111) for all BQE in all available MS reporting
