@@ -1078,6 +1078,11 @@ dat_EQS_aggrWB_since2010_ICtypes %>%
 ```
 
 ## C. Combine WFD TraC Supporting and Biological QE data
+
+#ADAPT HERE
+import WQ abd BioQ data prepared datasets
+
+
 ### C1. Combine WQ and BQE data for TraC Waters
 Data averaged by Site and year - INCOMPLETE
 ```{r WQ SiteMean-Yearly to Wide format - INCOMPLETE}
