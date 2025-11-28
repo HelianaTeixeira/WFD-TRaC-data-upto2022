@@ -1,0 +1,338 @@
+---
+title: "prepareBQEdata"
+author: "HT"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(here)
+library(openxlsx)
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+```
+
+## Data description
+
+This script prepares the previously extracted biological classifications (BQE from WISE-4 & WISE-2) to allow joining it with the water quality data (WQ from WISE-6) for selected supporting elements (SE), for both TRaC water categories (TW & CW).
+
+* BQE - From WISE2, EQR & EQS aggregated by Site (yearly), except for EE, IE and SI for which only already aggregated data by WB was available at source, so the EQR & EQSaggWB data was also extracted (for all countries and for those 4 countries). Data was extracted for all years available.
+
+* BQE - From WISE4, only WB aggregated EQS data (i.e., categories, not EQR) was available for the 1st and 2nd reporting cycle years 2010 and 2016.
+
+## B. Import Biological QE data
+### B1. Import BQE data for TraC Waters per year
+```{r Import WISE4 Biota EQS classifications to Wide format}
+#data split at Water Body level considering the years ]2009, 2016] leading to the 2nd reporting cycle 2016
+
+#TW
+dat_WFD_TW <- readRDS(here("Data","dat_W4_TW_BQE.rds")) #import biology
+
+#check available reporting years
+unique(dat_WFD_TW$cYear) # 2010, 2016
+
+#all years
+dat_WFD_TW.wide <- dat_WFD_TW %>% 
+  select(euSurfaceWaterBodyCode,countryCode,qeCode,qeStatusOrPotentialValue,cYear,naturalAWBHMWB,surfaceWaterBodyTypeCode,
+         surfaceWaterBodyIntercalibrationType,surfaceWaterBodyIntercalibrationTypeCode,cArea,cLength) %>% 
+  pivot_wider(names_from = qeCode, values_from = qeStatusOrPotentialValue)
+
+colnames(dat_WFD_TW.wide) <- make.names(names(dat_WFD_TW.wide)) # create valid names
+
+#select only 2nd cycle assessments 2016
+dat_WFD_TW_2nd <- dat_WFD_TW %>% 
+  filter(cYear==2016) %>% 
+  #filter(StartYear > 2009 |is.na(StartYear)) %>% 
+  ungroup()
+
+dat_WFD_TW_2nd_wide <- dat_WFD_TW_2nd %>% 
+  select(euSurfaceWaterBodyCode,countryCode,qeCode,qeStatusOrPotentialValue,naturalAWBHMWB,surfaceWaterBodyTypeCode,
+         surfaceWaterBodyIntercalibrationType,surfaceWaterBodyIntercalibrationTypeCode,cArea,cLength) %>% 
+  pivot_wider(names_from = qeCode, values_from = qeStatusOrPotentialValue)
+
+colnames(dat_WFD_TW_2nd_wide) <- make.names(names(dat_WFD_TW_2nd_wide)) # create valid names
+
+#CW
+dat_WFD_CW <- readRDS(here("Data","dat_W4_CW_BQE.rds")) #import biology
+
+#check available reporting years
+unique(dat_WFD_CW$cYear) # 2010, 2016
+
+#all years
+dat_WFD_CW.wide <- dat_WFD_CW %>% 
+  select(euSurfaceWaterBodyCode,countryCode,qeCode,qeStatusOrPotentialValue,cYear,naturalAWBHMWB,surfaceWaterBodyTypeCode,
+         surfaceWaterBodyIntercalibrationType,surfaceWaterBodyIntercalibrationTypeCode,cArea,cLength) %>% 
+  pivot_wider(names_from = qeCode, values_from = qeStatusOrPotentialValue)
+
+colnames(dat_WFD_CW.wide) <- make.names(names(dat_WFD_CW.wide)) # create valid names
+
+#select only 2nd cycle assessments 2016
+dat_WFD_CW_2nd <- dat_WFD_CW %>% 
+  filter(cYear==2016) %>% 
+  #filter(StartYear > 2009 |is.na(StartYear)) %>% 
+  ungroup()
+
+dat_WFD_CW_2nd_wide <- dat_WFD_CW_2nd %>% 
+  select(euSurfaceWaterBodyCode,countryCode,qeCode,qeStatusOrPotentialValue,naturalAWBHMWB,surfaceWaterBodyTypeCode,
+         surfaceWaterBodyIntercalibrationType,surfaceWaterBodyIntercalibrationTypeCode,cArea,cLength) %>% 
+  pivot_wider(names_from = qeCode, values_from = qeStatusOrPotentialValue)
+
+colnames(dat_WFD_CW_2nd_wide) <- make.names(names(dat_WFD_CW_2nd_wide)) # create valid names
+```
+
+```{r Import WISE2 Biota EQS classifications to Wide format}
+#TW & CW SiteMean per year all period of data
+dat_BQE_TW <- readRDS(here("Data","dat_BQE_TW.rds")) #import biology
+dat_BQE_CW <- readRDS(here("Data","dat_BQE_CW.rds")) #import biology
+
+#TRaC aggregated by WB per year all period of data
+dat_BQE_TRaC.aggrWB <- readRDS(here("Data","dat_BQE_TRaC_aggrWB_all.rds")) #import biology aggregated by WB all years 
+
+#TW
+names(dat_BQE_TW)
+
+dat_BQE_TW_wideEQS <- dat_BQE_TW %>% 
+  select(countryCode,waterBodyIdentifier,waterBodyName,parameterNCSWaterBodyType,
+         monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterNaturalAWBHMWB,
+         phenomenonTimeReferenceYear,observedPropertyDeterminandLabel,resultEcologicalStatusClassValue) %>% 
+  pivot_wider(names_from = observedPropertyDeterminandLabel, 
+              values_from = resultEcologicalStatusClassValue,
+              values_fn = mean)   #how to combine duplicates
+
+colnames(dat_BQE_TW_wideEQS) <- make.names(names(dat_BQE_TW_wideEQS)) # create valid names
+
+
+#CW
+dat_BQE_CW_wideEQS <- dat_BQE_CW %>% 
+  select(countryCode,waterBodyIdentifier,waterBodyName,parameterNCSWaterBodyType,
+         monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterNaturalAWBHMWB,
+         phenomenonTimeReferenceYear,observedPropertyDeterminandLabel,resultEcologicalStatusClassValue) %>% 
+  pivot_wider(names_from = observedPropertyDeterminandLabel, 
+              values_from = resultEcologicalStatusClassValue,
+              values_fn = mean)
+
+colnames(dat_BQE_CW_wideEQS) <- make.names(names(dat_BQE_CW_wideEQS)) # create valid names
+
+#TRaC aggWB
+dat_BQE_TRaC.aggrWB_wideEQS <- dat_BQE_TRaC.aggrWB %>% 
+  select(countryCode,parameterWaterBodyCategory,waterBodyIdentifier,waterBodyName,parameterNCSWaterBodyType,
+         waterBodyIdentifierScheme,parameterNaturalAWBHMWB,
+         phenomenonTimeReferenceYear,observedPropertyDeterminandLabel,resultEcologicalStatusClassValue) %>% 
+  pivot_wider(names_from = observedPropertyDeterminandLabel, values_from = resultEcologicalStatusClassValue)
+
+colnames(dat_BQE_TRaC.aggrWB_wideEQS) <- make.names(names(dat_BQE_TRaC.aggrWB_wideEQS)) # create valid names
+
+```
+
+### B2. Combine WISE4 & WISE2 Biological EQS data for all available years
+```{r harmonise BQEs names WISE2 & WISE4}
+#wise4
+dat_WFD_TW.wide #n=1119
+dat_WFD_CW.wide #n=4735
+
+#wise2
+dat_BQE_TW_wideEQS #n=1496
+dat_BQE_CW_wideEQS #n=3257
+dat_BQE_TRaC.aggrWB_wideEQS #n=1451
+
+#1st harmonise BQE names in both reporting databases 
+names(dat_WFD_TW.wide)
+names(dat_WFD_CW.wide)
+names(dat_BQE_TW_wideEQS)
+names(dat_BQE_CW_wideEQS)
+names(dat_BQE_TRaC.aggrWB_wideEQS)
+
+#TW 
+dat_WFD_TW.wide <- dat_WFD_TW.wide %>%
+  rename(
+    InvertebrateEQR = QE1.3...Benthic.invertebrates,
+    FishEQR = QE1.4...Fish,
+    MacroalgaeEQR = QE1.2.1...Macroalgae,
+    PhytoplanktonEQR = QE1.1...Phytoplankton,
+    otherAquaticFlora = QE1.2...Other.aquatic.flora,
+    Macrophytes = QE1.2.3...Macrophytes,
+    AngiospermsEQR = QE1.2.2...Angiosperms,
+    PhytobenthosEQR_E = QE1.2.4...Phytobenthos
+  )
+
+#CW
+dat_WFD_CW.wide <- dat_WFD_CW.wide %>%
+  rename(
+    InvertebrateEQR = QE1.3...Benthic.invertebrates,
+    FishEQR = QE1.4...Fish,
+    MacroalgaeEQR = QE1.2.1...Macroalgae,
+    PhytoplanktonEQR = QE1.1...Phytoplankton,
+    otherAquaticFlora = QE1.2...Other.aquatic.flora,
+    Macrophytes = QE1.2.3...Macrophytes,
+    AngiospermsEQR = QE1.2.2...Angiosperms,
+    PhytobenthosEQR_E = QE1.2.4...Phytobenthos
+  )
+
+```
+
+```{r prepare data to merge BQE aggrWB from WISE2 & WISE4 }
+#1st check for differences in variables names in wise 4 TW vs CW
+setdiff(names(dat_WFD_TW.wide),names(dat_WFD_CW.wide)) #no difference between TW & CW WISE4
+
+#2nd merge TW and CW in WISE4 into unique df
+dat_WFD_TRaC.aggrWB_wideEQS <- bind_rows(TW = dat_WFD_TW.wide, CW = dat_WFD_CW.wide, 
+                                         .id = "parameterWaterBodyCategory") #id source water category dataset
+
+#3rd inspect WISE4 vs WISE2 TRaC aggregated by WB
+names(dat_WFD_TRaC.aggrWB_wideEQS) #WISE4
+names(dat_BQE_TRaC.aggrWB_wideEQS) #WISE2
+
+intersect(names(dat_WFD_TRaC.aggrWB_wideEQS),names(dat_BQE_TRaC.aggrWB_wideEQS)) 
+#equal variable names to match:
+#"parameterWaterBodyCategory" "countryCode" 
+#"InvertebrateEQR"  "FishEQR"    "MacroalgaeEQR"    "PhytoplanktonEQR" "AngiospermsEQR" 
+
+symdiff(names(dat_WFD_TRaC.aggrWB_wideEQS),names(dat_BQE_TRaC.aggrWB_wideEQS))
+#equivalent variables to match:
+#"naturalAWBHMWB" =  "parameterNaturalAWBHMWB" 
+#"euSurfaceWaterBodyCode" = "waterBodyIdentifier"
+#"surfaceWaterBodyTypeCode" = "parameterNCSWaterBodyType"
+
+#missing BQEs to include 
+# "PhytobenthosEQR_E", "otherAquaticFlora", "Macrophytes"    
+
+#diff vars ADD:
+#"phenomenonTimeReferenceYear" ,  "cYear"  
+#"waterBodyName", "surfaceWaterBodyIntercalibrationType","surfaceWaterBodyIntercalibrationTypeCode"
+
+#diff vars DROP:
+unique(dat_BQE_TRaC.aggrWB_wideEQS$waterBodyIdentifierScheme)     
+# waterBodyIdentifierScheme : in wise 2 
+# -cArea, -cLength : in wise 4
+
+dat_WFD_TRaC.aggrWB_wideEQS <- dat_WFD_TRaC.aggrWB_wideEQS %>% #WISE4 clean
+  select(-cArea, -cLength) 
+
+# WISE2 clean data and aggregate by WFD Cycle BEFORE merge with WISE4
+# add WFD Cycle year variable to wise 2 "cYear"
+cYear <- list(
+  `baseline`= 2000:2003,
+  `2010` = 2004:2009,
+  `2016` = 2010:2015,
+  `2022` = 2016:2021,
+  `2028` = 2022:2027
+)
+
+dat_BQE_TRaC.aggrWB_Cycle <- dat_BQE_TRaC.aggrWB_wideEQS %>% # wise2
+  select(-waterBodyIdentifierScheme) %>%
+  mutate(cYear=case_when(
+    phenomenonTimeReferenceYear %in% cYear$baseline ~ 2000,
+    phenomenonTimeReferenceYear %in% cYear$`2010` ~ 2010,
+    phenomenonTimeReferenceYear %in% cYear$`2016` ~ 2016,
+    phenomenonTimeReferenceYear %in% cYear$`2022` ~ 2022,
+    phenomenonTimeReferenceYear %in% cYear$`2028` ~ 2028,
+    TRUE ~ NA_real_
+    )
+    )
+
+names(dat_BQE_TRaC.aggrWB_Cycle)
+
+#4th summarise WISE2 BQE EQS data per per WB and WFD cycle
+#to include mean EQS value rounded per BQE + count samples
+meanEQS_TRaC_Cycle_WB_wise2 <- dat_BQE_TRaC.aggrWB_Cycle %>%
+  group_by(parameterWaterBodyCategory, cYear, countryCode, parameterNCSWaterBodyType, waterBodyIdentifier, waterBodyName,parameterNaturalAWBHMWB) %>%
+  summarise(
+    # mean values for all EQS rounded to nearest integer, then clipped to 1–5 scale
+    across(
+      ends_with("EQR"),
+      ~ {
+        m <- mean(.x, na.rm = TRUE)
+        if (is.nan(m)) return(NA_real_)     # keep NA
+        m_round <- round(m, 0)
+        m_safe  <- min(max(m_round, 1), 5) # force between 1 and 5
+        m_safe
+      },
+      .names = "{.col}_mean"
+    ),
+    
+    # count of non-missing records per EQS value
+    across(
+      ends_with("EQR"),
+      ~ sum(!is.na(.x)),
+      .names = "{.col}_n"
+    ),
+    
+    .groups = "drop"
+  )
+
+
+
+#5th join tables WISE4 vs WISE2 TRaC aggregated by WB
+names (meanEQS_TRaC_Cycle_WB_wise2) #WISE2
+names(dat_WFD_TRaC.aggrWB_wideEQS) #WISE4
+
+meanEQS_TRaC_Cycle_WB_wise2_clean<- meanEQS_TRaC_Cycle_WB_wise2 %>% 
+  select(-PhytoplanktonEQR_n, -MacroalgaeEQR_n, -InvertebrateEQR_n, -AngiospermsEQR_n, -FishEQR_n) #drop count of samples to mean EQS in WISE2
+
+symdiff(names(meanEQS_TRaC_Cycle_WB_wise2_clean),names(dat_WFD_TRaC.aggrWB_wideEQS)) #check all vars not shared between WISE4 & WISE2
+ 
+  
+```
+
+```{r merge WISE4 & WISE2 TRaC aggregated by WB and per Cycle}
+ 
+#merge WISE4 & WISE2 TRaC aggregated by WB full_join to keep all data
+  dat_EQS_aggrWB_since2010  <- full_join(meanEQS_TRaC_Cycle_WB_wise2_clean, dat_WFD_TRaC.aggrWB_wideEQS,
+          by=c("parameterWaterBodyCategory",
+               "cYear",
+               "countryCode",
+               "waterBodyIdentifier"="euSurfaceWaterBodyCode", #establish equivalence where names differ
+               "parameterNCSWaterBodyType"="surfaceWaterBodyTypeCode",
+               "parameterNaturalAWBHMWB"="naturalAWBHMWB",
+               "PhytoplanktonEQR_mean"="PhytoplanktonEQR",
+               "MacroalgaeEQR_mean"="MacroalgaeEQR",
+               "InvertebrateEQR_mean"="InvertebrateEQR",
+               "AngiospermsEQR_mean" = "AngiospermsEQR",
+               "FishEQR_mean"="FishEQR"
+               )
+  )
+  
+  #rename variables for accuracy, EQS not EQR
+  dat_EQS_aggrWB_since2010 <- dat_EQS_aggrWB_since2010 %>%
+    rename( 
+    "PhytoplanktonEQS"="PhytoplanktonEQR_mean",
+    "MacroalgaeEQS"="MacroalgaeEQR_mean",
+    "InvertebrateEQS"="InvertebrateEQR_mean",
+    "AngiospermsEQS"="AngiospermsEQR_mean",
+    "FishEQS"="FishEQR_mean",
+    "otherAquaticFloraEQS"="otherAquaticFlora",
+    "MacrophytesEQS"= "Macrophytes",
+    "PhytobenthosE_EQS"="PhytobenthosEQR_E"
+  )
+  
+ #checks
+ length(unique(dat_EQS_aggrWB_since2010$surfaceWaterBodyIntercalibrationTypeCode))
+ unique(dat_EQS_aggrWB_since2010$surfaceWaterBodyIntercalibrationTypeCode)
+ 
+ #RW observations misclassified as CW, dropped
+    dat_EQS_aggrWB_since2010 <- dat_EQS_aggrWB_since2010 %>%
+      filter(!surfaceWaterBodyIntercalibrationTypeCode %in% c("RW-R-M4", "RW-R-M1"))
+
+#fill in missing ICtype code for  WISE2 periods using WISE4 available IC common Types codes per water body
+    dat_EQS_aggrWB_since2010_ICtypes <- dat_EQS_aggrWB_since2010 %>%
+  group_by(waterBodyIdentifier) %>%
+  # Fill missing codes using available IC TypeCode for the same water body
+  mutate(
+    surfaceWaterBodyIntercalibrationTypeCode = 
+      if_else(
+        is.na(surfaceWaterBodyIntercalibrationTypeCode),
+        first(na.omit(surfaceWaterBodyIntercalibrationTypeCode)),
+        surfaceWaterBodyIntercalibrationTypeCode
+      )
+  ) %>%
+  ungroup()
+   
+#check
+dat_EQS_aggrWB_since2010_ICtypes %>% 
+      group_by(waterBodyIdentifier,surfaceWaterBodyIntercalibrationTypeCode,cYear) %>%
+    summarise(n=n(), .groups = "drop")%>%
+      arrange(desc(cYear), desc(n))
+```
