@@ -74,5 +74,4 @@ Overall, separate datasets were created (subdirectory WFD-TRaC-data-upto2022/Dat
 2. BQESEdatCW_WFD2010.xlsx - CW 2010 to be added
 3. BQESEdatTW_WFD2016.xlsx (n=111) for all BQE in all available MS reporting
 4. BQESEdatCW_WFD2016.xlsx (n=115) for all BQE in all available MS reporting
-5. TW 2022 - to be added where corresponding BIO & SE data availble for merging
-6. CW 2022 - to be added where corresponding BIO & SE data availble for merging
+5. ...
