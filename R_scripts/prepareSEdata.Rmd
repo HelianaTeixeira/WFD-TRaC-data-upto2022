@@ -114,6 +114,7 @@ names(WQdatTWSite)
 names(WQdatCWSiteAgg)
 
 #prepare to merge datsets
+
 #1st modify col name "resultStdValue" change to "resultStandardDeviationValue" to have std names across datasets
 WQdatTWSite <- WQdatTWSite %>% 
   rename(resultStandardDeviationValue = resultStdValue) #change name as in agg dataset
@@ -137,14 +138,14 @@ WQdatTWSite$countryCode %>%
   sort()
 #only in Disagg:"BE" "EL" "IE" "LT" "LV" "PL" "PT"
 
-WQdatTWSiteAgg $countryCode %>% 
+WQdatTWSiteAgg$countryCode %>% 
   unique() %>% 
   sort()
 #only in Agg: "MT" 
 #in both datasets: "BG" "DE" "ES" "FR" "HR" "IT" "NL" "RO" "UK"
 
 #CW
-WQdatCWSite $countryCode %>% 
+WQdatCWSite$countryCode %>% 
   unique() %>% 
   sort()
 #only in Disagg:"EE" "EL" "HR" "LT" "MT" "NL" "PL" "PT" "SE" "SI"
@@ -169,6 +170,24 @@ WQdatTWSiteAgg %>%
    ungroup() #e.g. of Bulgaria BG 1992-2012 (#samples 41,56,106 per year)
 
 # often different years - good to merge datatsets, handle duplicates afterwards for overlapping years
+
+```
+
+```{r overview of reporting period annual / seasonal}
+#check parameterSamplingPeriod values
+#LEFT HERE
+#TW only Agg data has sampling period check at origin extract data script
+# ALSO empty info (NAs) to consider first
+# and ALSO different seasons reported
+#adjust code below or change mutated new variable name as needed
+WQdatTWSiteAgg <- WQdatTWSiteAgg %>% 
+  mutate(sampling = ifelse(
+    grepl("^[0-9]{4}-01--[0-9]{4}-12$|^[0-9]{4}-[0-9]{2}-01--[0-9]{4}-12-31$",
+          WQdatTWSiteAgg$parameterSamplingPeriod),
+  "annual data",
+  "seasonal data"))
+  
+
 
 ```
 
