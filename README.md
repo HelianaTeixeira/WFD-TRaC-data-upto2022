@@ -61,8 +61,16 @@ note3: SE Data in AggregatedDataByWaterBody dataset is mostly historical and cur
   - extractSOE-WISE6-SE.R
 
 **2nd Prepare SE DATA:** 
+This script prepares the previously extracted water quality data (WQ from WISE-6) for selected supporting elements (SE) prior to joining it with the biological classifications (BQE from WISE-4 & WISE-2), for both TRaC water categories (TW & CW). 
 
+* WQ(SE) - From WISE6, this script uses the previously source Site disaggregated SE data summarised (mean) by Year and Site and the source Site aggregated data by year, which are here merged (WQ siteMean_year - xlsx outputs) then they aggregated at WB level per year (WQ aggWBmean_year - xlsx outputs) and then the WB level data is further aggregated per reporting cyle (WQ summary_periods - xlsx outputs).
+  
 **3rd Prepare Biological DATA:** 
+This script prepares the previously extracted biological classifications (BQE from WISE-4 & WISE-2) prior to joining it with the water quality data (WQ from WISE-6) for selected supporting elements (SE), for both TRaC water categories (TW & CW).
+
+* BQE - From WISE2, EQR & EQS aggregated by Site (yearly), except for EE, IE and SI for which only report aggregated data by WB was available at source, so the EQR & EQSaggWB data was also extracted (for all countries and for those 4 countries). Data was extracted for all years available.
+
+* BQE - From WISE4, only WB aggregated EQS data (i.e., categories, not EQR) was available for the 1st and 2nd reporting cycle years 2010 and 2016.
 
 **4th COMBINE BIOLOGY & SE DATA:** the script WFD-TRaC-data-upto2022/R_scripts/"CombineTraC_SE-BQE.Rmd" was used to merge the extracted water quality data (WQ from WISE-6) for selected supporting elements (SE, i.e. nutrients and other physico-chemical parameters) to the biological classifications (BQE from WISE-4 (only EQS) & WISE-2 (both EQR and EQS)), for both TRaC water categories (TW & CW), using samples' code. More details within the script, including of corrections performed.
 
