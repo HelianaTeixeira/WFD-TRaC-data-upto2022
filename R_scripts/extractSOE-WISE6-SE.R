@@ -156,28 +156,28 @@ con2 <- dbConnect(duckdb())
 head <- dbGetQuery(con2, "
   SELECT *
   FROM read_csv_auto(
-    '/Users/helianateixeira/Rdir/WFD-TRaC-data-upto2022/Databases/waterbase_t_wise6_disaggregateddata.csv',
+    '~/Documents/GitHub/WFD-TRaC-data-upto2022/Databases/waterbase_t_wise6_disaggregateddata.csv',
     sample_size=10000
   )
   LIMIT 5
 ")
 
-# select only TRaC data
+#extract TraC data to a df
 df <- dbGetQuery(con2,"
   SELECT parameterWaterBodyCategory, 
   FROM read_csv_auto(
-    '/Users/helianateixeira/Rdir/WFD-TRaC-data-upto2022/Databases/waterbase_t_wise6_disaggregateddata.csv')
+    '~/Documents/GitHub/WFD-TRaC-data-upto2022/Databases/waterbase_t_wise6_disaggregateddata.csv')
 ")
 
 #inspect water category labels
 levels(as.factor(df$parameterWaterBodyCategory))
 #[1] "CW"  "GW"  "LW"  "RW"  "TeW" "TW" 
 
-#extract TraC data to a df
+# select only TRaC data
 df <- dbGetQuery(con2, "
   SELECT *
   FROM read_csv_auto(
-    '/Users/helianateixeira/Rdir/WFD-TRaC-data-upto2022/Databases/waterbase_t_wise6_disaggregateddata.csv'
+    '~/Documents/GitHub/WFD-TRaC-data-upto2022/Databases/waterbase_t_wise6_disaggregateddata.csv'
   )
   WHERE parameterWaterBodyCategory IN ('CW','TW')
 ")
@@ -263,19 +263,60 @@ detUsed <- c("EEA_3152-01-0","EEA_3164-01-0","EEA_3111-01-1","CAS_14797-55-8",
              "EEA_31-03-8","EEA_3161-03-3","CAS_14797-65-0",
              "EEA_3164-07-6","EEA_3161-04-4","EEA_3133-02-6","EEA_3121-01-5")
 
+
+#add seasons
+df<- df %>%
+  mutate(phenomenonTimeSamplingMonth = as.numeric(substr(phenomenonTimeSamplingDate,6,7))) %>%
+  mutate(Season = case_when(
+    phenomenonTimeSamplingMonth %in% c(12,1,2) ~ "Winter",
+    phenomenonTimeSamplingMonth %in% c(3,4,5) ~ "Spring",
+    phenomenonTimeSamplingMonth %in% c(6,7,8) ~ "Summer",
+    phenomenonTimeSamplingMonth %in% c(9,10,11) ~ "Autumn",
+    TRUE ~ NA_character_
+  ))
+
+# define season names expected
+canonical_seasons <- c("Winter", "Spring", "Summer", "Autumn")
+
 #Then, below select the TW and CW data and these codes and aggregate the data using a mean.
 
 ### Select TW disaggregated data and summarise----
+#summarise TW data
 dat_WQ_TW <- df %>%
-  select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeSamplingDate,parameterSampleDepth,sampleIdentifier,resultObservedValue) %>% 
-  filter(parameterWaterBodyCategory == "TW" & observedPropertyDeterminandCode %in% detUsed) %>% 
-  mutate(phenomenonTimeReferenceYear = as.numeric(substr(phenomenonTimeSamplingDate,1,4))) %>% 
-  group_by(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeReferenceYear,parameterSampleDepth) %>%
-  summarise(resultMeanValue = mean(resultObservedValue, na.rm=TRUE),
-            resultStdValue = sd(resultObservedValue, na.rm=TRUE), # for data dispersion
-            resultMinimumValue = min(resultObservedValue, na.rm=TRUE),
-            resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
-            resultNumberOfSamples = n()) %>% 
+  select(
+    monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,
+         observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,
+         resultUom,Season,phenomenonTimeReferenceYear,parameterSampleDepth,sampleIdentifier,resultObservedValue) %>% 
+  filter(
+    parameterWaterBodyCategory == "TW" & observedPropertyDeterminandCode %in% detUsed) 
+
+dat_WQ_TW <- dat_WQ_TW %>% 
+  #compute flag per site/year/variable *without* Season in the grouping
+  group_by(
+    monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,
+    observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,
+    resultUom,phenomenonTimeReferenceYear,parameterSampleDepth) %>%
+  # Check if all 4 seasons are present
+  mutate(has_all_seasons = n_distinct(Season,na.rm = TRUE) == 4) %>%
+  ungroup() 
+
+dat_WQ_TW <- dat_WQ_TW %>%
+  # Replace Season with "Annual" only for those sites/years with all 4 seasons
+  mutate(Season = ifelse(has_all_seasons, "Annual", Season)) %>%
+  select(-has_all_seasons) %>%
+  # Re-summarise (group again with updated Season)
+  group_by(
+    monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,
+    observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,
+    resultUom,Season,phenomenonTimeReferenceYear,parameterSampleDepth) %>%
+  summarise(
+    resultMeanValue = mean(resultObservedValue, na.rm=TRUE),
+    resultStdValue = sd(resultObservedValue, na.rm=TRUE), # for data dispersion
+    resultMinimumValue = min(resultObservedValue, na.rm=TRUE),
+    resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
+    resultNumberOfSamples = n(), 
+    .groups = "drop"
+    ) %>% 
   mutate(metadata_versionId = "Waterbase_v2024_WISE6_DisaggregatedData")
 
 #left_join SE & spatial data info
@@ -289,42 +330,10 @@ dat_WQ_TW.Spatial <- left_join(dat_WQ_TW,WISE6_Spatial_TRaC_shrt,
 dat_WQ_TW.Spatial %>% filter(is.na(lat)) %>%
   group_by(countryCode) %>%
   count()
-# countryCode     n
-# 1 BG            3
-# 2 ES            12
-# 3 FR            318
-# 4 PT            94
-# 5 UK            526
-# 6 NA            48
 
 dat_WQ_TW.Spatial %>% filter(is.na(lat)) %>%
   group_by(monitoringSiteIdentifier) %>%
-  count() %>%
-  print(n=23)
-# monitoringSiteIdentifier       n
-# 1 BG60000976                   3 no lat info
-# 2 ES040ESPF000400127          12 no lat info
-# 3 FRFR05026000                64 no lat info
-# 4 FRFR05029800                68 no lat info
-# 5 FRFR05076000                64 no lat info
-# 6 FRFR05200200                64 no lat info
-# 7 FRFR05238500                58 no lat info
-# 8 ITF15LF4                     8 Not in Spatial dataset
-# 9 ITF15LL4                     8 Not in Spatial dataset
-# 10 ITF15LM5                     8 Not in Spatial dataset
-# 11 ITF15LP7                     8 Not in Spatial dataset
-# 12 ITF15LP8                     8 Not in Spatial dataset
-# 13 ITF15LP9                     8 Not in Spatial dataset
-# 14 PT03F03                     47 no lat info
-# 15 PT03F04                     47 no lat info
-# 16 UKEA_BIOSYS_SW_9318          3 no lat info
-# 17 UKEA_WIMS_SO_F0002151       69 no lat info
-# 18 UKEA_WIMS_SW_81930101       70 no lat info
-# 19 UKEA_WIMS_SW_E1008300       72 no lat info
-# 20 UKEA_WIMS_TH_PCRR0025       65 no lat info
-# 21 UKEA_WIMS_TH_PRGR0030       74 no lat info
-# 22 UKEA_WIMS_TH_PRGR0081       75 no lat info
-# 23 UKEA_WIMS_TH_PTHR0107       98 no lat info
+  count()
 
 #Save TW data
 dat_WQ_TW.Spatial$Created <- Sys.Date()
@@ -333,15 +342,39 @@ saveRDS(dat_WQ_TW.Spatial,file = here("Data","dat_WQ_TW.rds"))
 
 ### Select CW disaggregated data and summarise---- 
 dat_WQ_CW <- df %>%
-  select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeSamplingDate,parameterSampleDepth,sampleIdentifier,resultObservedValue) %>% 
-  filter(parameterWaterBodyCategory == "CW" & observedPropertyDeterminandCode %in% detUsed) %>% 
-  mutate(phenomenonTimeReferenceYear = as.numeric(substr(phenomenonTimeSamplingDate,1,4))) %>% 
-  group_by(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeReferenceYear,parameterSampleDepth) %>%
-  summarise(resultMeanValue = mean(resultObservedValue, na.rm=TRUE),
-            resultStdValue = sd(resultObservedValue, na.rm=TRUE), #for data dispersion
-            resultMinimumValue = min(resultObservedValue, na.rm=TRUE),
-            resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
-            resultNumberOfSamples = n()) %>% 
+  select(
+    monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,
+    observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,
+    resultUom,Season,phenomenonTimeReferenceYear,parameterSampleDepth,sampleIdentifier,resultObservedValue) %>% 
+  filter(
+    parameterWaterBodyCategory == "CW" & observedPropertyDeterminandCode %in% detUsed) 
+
+dat_WQ_CW <- dat_WQ_CW%>%
+  #compute flag per site/year/variable *without* Season in the grouping
+  group_by(
+    monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,
+    observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,
+    resultUom,phenomenonTimeReferenceYear,parameterSampleDepth) %>%
+  # Check if all 4 seasons are present
+  mutate(has_all_seasons = n_distinct(Season,na.rm = TRUE) == 4) %>%
+  ungroup() 
+
+dat_WQ_CW <- dat_WQ_CW %>%
+  # Replace Season with "Annual" only for those sites/years with all 4 seasons
+  mutate(Season = ifelse(has_all_seasons, "Annual", Season)) %>%
+  select(-has_all_seasons) %>%
+  # Re-summarise (group again with updated Season)
+  group_by(
+    monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,
+    observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,
+    resultUom,Season,phenomenonTimeReferenceYear,parameterSampleDepth) %>%
+  summarise(
+    resultMeanValue = mean(resultObservedValue, na.rm=TRUE),
+    resultStdValue = sd(resultObservedValue, na.rm=TRUE), #for data dispersion
+    resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
+    resultNumberOfSamples = n(),
+    .groups = "drop"
+    ) %>% 
   mutate(metadata_versionId = "Waterbase_v2024_WISE6_DisaggregatedData")
 
 #left_join SE & spatial data info
@@ -356,24 +389,17 @@ dat_WQ_CW.Spatial <- left_join(dat_WQ_CW ,WISE6_Spatial_TRaC_shrt,
 dat_WQ_CW.Spatial  %>% filter(is.na(lat)) %>%
   group_by(countryCode) %>%
   count()
-# countryCode     n
-# 1 IT              3
-# 2 NA             17
 
 dat_WQ_CW.Spatial %>% filter(is.na(lat)) %>%
   group_by(monitoringSiteIdentifier) %>%
   count()
-# monitoringSiteIdentifier       n
-# 1 IT07MA00971                 17 no lat in spatial dat
-# 4 IT15-VES8                    3 no lat in spatial dat
 
 #Save CW data
 dat_WQ_CW.Spatial $Created <- Sys.Date()
 dat_WQ_CW.Spatial  <- dat_WQ_CW.Spatial  %>% ungroup()
 saveRDS(dat_WQ_CW.Spatial ,file = here("Data","dat_WQ_CW.rds"))
 
-### explore new tables for checking ----
-#search e.g. for transparency data
+### explore generated TW & CW datasets for checking ----
 library(readr)
 test <- read_rds(here("Data","dat_WQ_CW.rds")) 
 test %>%
@@ -381,30 +407,12 @@ test %>%
   group_by(countryCode)%>%
   count()
 
-#CW
-# countryCode     n
-# 1 EE            140
-# 2 EL             67
-# 3 ES             84
-# 4 IT           2581
-# 5 LT              4
-# 6 MT             77
-# 7 NO            131
-# 8 PL              5
-# 9 PT             87
-# 10 NA              1
+test2 <- read_rds(here("Data","dat_WQ_TW.rds")) 
+test2 %>%
+  filter(observedPropertyDeterminandLabel == "Secchi depth")%>%
+  group_by(countryCode)%>%
+  count()
 
-#TW
-#countryCode     n
-# 1 BE              9
-# 2 BG             17
-# 3 EL             50
-# 4 ES             62
-# 5 IT           1667
-# 6 LT            109
-# 7 NL              8
-# 8 PL              7
-# 9 PT            240
 
 #check for SD in CW but now only for year corresponding to WFD 2nd cycle 2016
 test %>%
@@ -413,13 +421,6 @@ test %>%
   group_by(countryCode)%>%
   count()
   
-#Correct!!!
-# countryCode      n
-# 1 IT            506
-# 2 LT              1
-# 3 PT             44
-
-test2 <- read_rds(here("Data","dat_WQ_TW.rds")) 
 #check for Oxygen in TW but now only for year corresponding to WFD 2nd cycle 2016
 test2 %>%
   filter(observedPropertyDeterminandLabel == "Oxygen saturation")%>% #Oxygen saturation; Dissolved oxygen
@@ -427,51 +428,11 @@ test2 %>%
   group_by(countryCode)%>%
   count()
 
-#O saturation in TW in 2nd cycle years
-# countryCode     n
-# 1 BE              9
-# 2 BG             14
-# 3 FR             15
-# 4 HR             10
-# 5 IT            279
-# 6 LT             29
-# 7 NL              8
-# 8 PT             53
-# 9 UK             26
-
 test2 %>%
   filter(observedPropertyDeterminandLabel == "Dissolved oxygen")%>% 
   filter(phenomenonTimeReferenceYear >2009 & phenomenonTimeReferenceYear <2016) %>% 
   group_by(countryCode)%>%
   count()
-#DO  in TW in 2nd cycle years
-# countryCode     n
-# 1 BE              9
-# 2 BG             17
-# 3 HR             10
-# 4 IT            182
-# 5 LT             29
-# 6 NL              8
-# 7 PT            105
-# 8 UK             26
-
-
-
-### Create a list of dets, write to Excel for reference----
-
-TW.dets.summary<-dat_WQ_TW.Spatial%>%group_by(observedPropertyDeterminandLabel,observedPropertyDeterminandCode,resultUom)%>%
-  count()%>%
-  arrange(desc(n))%>%
-  print(n=32)
-
-CW.dets.summary<-dat_WQ_CW.Spatial%>%group_by(observedPropertyDeterminandLabel,observedPropertyDeterminandCode,resultUom)%>%
-  count()%>%
-  arrange(desc(n))%>%
-  print(n=32)
-
-library(openxlsx)
-write.xlsx(TW.dets.summary,here("Data","DetList-TW.xlsx"))
-write.xlsx(CW.dets.summary,here("Data","DetList-CW.xlsx"))
 
 ### get summary of years available per Water Category ----
 CW <- readRDS(here("Data","dat_WQ_CW.rds"))
@@ -486,6 +447,22 @@ summary(as.factor(TW$phenomenonTimeReferenceYear))
 #10    8   49   17   16   14   12   13   15  193  571  190  177  419 1822 1914 1578 3392 4451 4731 4569 3135 4763 3166    2 
 
 
+
+
+### Create a list of dets, write to Excel for reference----
+TW.dets.summary<-dat_WQ_TW.Spatial%>%group_by(observedPropertyDeterminandLabel,observedPropertyDeterminandCode,resultUom)%>%
+  count()%>%
+  arrange(desc(n))%>%
+  print(n=32)
+
+CW.dets.summary<-dat_WQ_CW.Spatial%>%group_by(observedPropertyDeterminandLabel,observedPropertyDeterminandCode,resultUom)%>%
+  count()%>%
+  arrange(desc(n))%>%
+  print(n=32)
+
+library(openxlsx)
+write.xlsx(TW.dets.summary,here("Data","DetList-TW.xlsx"))
+write.xlsx(CW.dets.summary,here("Data","DetList-CW.xlsx"))
 
 ## Select TRaC aggregated data by monitoring site ---- 
 WISE6_WQ_AggSite <- read.csv(file = here("Databases","waterbase_t_wise6_aggregateddata.csv"),sep = ";") #all water categories
