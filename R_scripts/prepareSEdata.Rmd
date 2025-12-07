@@ -311,7 +311,7 @@ WQdatCWSiteAgg.sel <- WQdatCWSiteAgg.sel %>%
 WQdatTWSiteMeanYearly <- full_join(WQdatTWSite, WQdatTWSiteAgg.sel, suffix = c(".dis", ".agg")) #TW
 WQdatCWSiteMeanYearly <- full_join(WQdatCWSite, WQdatCWSiteAgg.sel, suffix = c(".dis", ".agg")) #CW
 
-#check duplicates (same site, year, det)
+#check duplicates (same site, year, det) - duplicates due to sampleDepth differences - OK!
 WQdatTWSiteMeanYearly %>% 
   group_by(monitoringSiteIdentifier,waterBodyIdentifier,phenomenonTimeReferenceYear,Season,Det) %>%
   filter(n()>1) %>%
@@ -378,21 +378,20 @@ WQdatTWSiteMeanYearly.wb %>%
    ungroup() # monitoringSiteIdentifier with NAs in waterBodyName n=30 remain
 
 WQdatTW_aggWB_year <- WQdatTWSiteMeanYearly.wb %>%
-  select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,
-         observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,procedureAnalysedMatrix,
-         resultUom,phenomenonTimeReferenceYear,parameterSampleDepth,
-         resultMeanValue,thematicIdIdentifierScheme,thematicIdIdentifier,countryCode,
-         waterBodyName,waterBodyIdentifier,naturalAWBHMWB,surfaceWaterBodyTypeCode,
-         metadata_versionId,source,parameterSamplingPeriod,Created) %>%
-  group_by(countryCode,waterBodyIdentifier,Det,resultUom,procedureAnalysedMatrix,
-           parameterSampleDepth,parameterSamplingPeriod,phenomenonTimeReferenceYear) %>%
+  # select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,
+  #        observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,procedureAnalysedMatrix,
+  #        resultUom,Season,phenomenonTimeReferenceYear,parameterSampleDepth,
+  #        resultMeanValue,resultNumberOfSamples,thematicIdIdentifierScheme,thematicIdIdentifier,countryCode,
+  #        waterBodyName,waterBodyIdentifier,naturalAWBHMWB,surfaceWaterBodyTypeCode,Created) %>%
+  group_by(countryCode,waterBodyIdentifier,phenomenonTimeReferenceYear,Season,Det,resultUom,procedureAnalysedMatrix,
+           parameterSampleDepth) %>%
   summarise(resultMeanValueWB = mean(resultMeanValue, na.rm=TRUE),
             resultStdValueWB = sd(resultMeanValue, na.rm=TRUE), # for data dispersion
+            resultMedianValueWB = median(resultMeanValue, na.rm=TRUE),
             resultMinimumValueWB = min(resultMeanValue, na.rm=TRUE),
             resultMaximumValueWB = max(resultMeanValue, na.rm=TRUE),
-            resultNumberOfSamplesWB = n())
-
-# dropped: "parameterWaterBodyCategory", "resultStandardDeviationValue", "resultMinimumValue","resultMaximumValue","resultNumberOfSamples",           "lat","lon","procedureLOQValue" ,"resultQualityNumberOfSamplesBelowLOQ","resultMedianValue","remarks", "metadata_statements"                 
+            resultNumberOfSamplesWB = n(),
+            .groups = "drop")
 
 #CW prepare for aggregation at WB level
 list.5 <- WQdatCWSiteMeanYearly %>% 
@@ -438,19 +437,21 @@ WQdatCWSiteMeanYearly.wb %>%
    ungroup() # monitoringSiteIdentifier with NAs in waterBodyName n=5 remain
 
 WQdatCW_aggWB_year <- WQdatCWSiteMeanYearly.wb %>%
-  select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,
-         observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,procedureAnalysedMatrix,
-         resultUom,phenomenonTimeReferenceYear,parameterSampleDepth,
-         resultMeanValue,thematicIdIdentifierScheme,thematicIdIdentifier,countryCode,
-         waterBodyName,waterBodyIdentifier,naturalAWBHMWB,surfaceWaterBodyTypeCode,
-         metadata_versionId,source,parameterSamplingPeriod,Created) %>%
-  group_by(countryCode,waterBodyIdentifier,Det,resultUom,procedureAnalysedMatrix,
-           parameterSampleDepth,parameterSamplingPeriod,phenomenonTimeReferenceYear) %>%
+  # select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,
+  #        observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,procedureAnalysedMatrix,
+  #        resultUom,phenomenonTimeReferenceYear,parameterSampleDepth,
+  #        resultMeanValue,thematicIdIdentifierScheme,thematicIdIdentifier,countryCode,
+  #        waterBodyName,waterBodyIdentifier,naturalAWBHMWB,surfaceWaterBodyTypeCode,
+  #        metadata_versionId,source,parameterSamplingPeriod,Created) %>%
+  group_by(countryCode,waterBodyIdentifier,phenomenonTimeReferenceYear,Season,Det,resultUom,procedureAnalysedMatrix,
+           parameterSampleDepth) %>%
   summarise(resultMeanValueWB = mean(resultMeanValue, na.rm=TRUE),
             resultStdValueWB = sd(resultMeanValue, na.rm=TRUE), # for data dispersion
+            resultMedianValueWB = median(resultMeanValue, na.rm=TRUE),
             resultMinimumValueWB = min(resultMeanValue, na.rm=TRUE),
             resultMaximumValueWB = max(resultMeanValue, na.rm=TRUE),
-            resultNumberOfSamplesWB = n())
+            resultNumberOfSamplesWB = n(),
+            .groups = "drop")
 
 # dropped: "parameterWaterBodyCategory", "resultStandardDeviationValue", "resultMinimumValue","resultMaximumValue","resultNumberOfSamples",           "lat","lon","procedureLOQValue" ,"resultQualityNumberOfSamplesBelowLOQ","resultMedianValue","remarks", "metadata_statements"    
 ```
@@ -509,13 +510,13 @@ for (p in names(periods)) {
     select(
       countryCode, waterBodyIdentifier, waterBodyName,
       observedPropertyDeterminandCode, observedPropertyDeterminandLabel,
-      Det, resultUom, resultMeanValue, lat, lon,
+      Det, resultUom, resultMeanValue, lat, lon, Season,
       phenomenonTimeReferenceYear
     ) %>%
     group_by(
       countryCode, waterBodyIdentifier, waterBodyName,
       observedPropertyDeterminandCode, observedPropertyDeterminandLabel,
-      Det, resultUom
+      Det, resultUom, Season
     ) %>%
     summarise(
       wbMeanValue = mean(resultMeanValue, na.rm = TRUE),
@@ -528,7 +529,7 @@ for (p in names(periods)) {
   
   #duplicate check (BEFORE pivot_wider)
   dupTW_summary <- WQ_TW_WBsummary_Period[[p]] %>%
-    count(countryCode, waterBodyIdentifier, waterBodyName, Det) %>%
+    count(countryCode, waterBodyIdentifier, waterBodyName, Season, Det) %>%
     filter(n > 1)
   
   if (nrow(dupTW_summary) > 0) {
@@ -540,15 +541,16 @@ for (p in names(periods)) {
     dupTW_details <- WQdatTWSite_Period[[p]] %>%
       semi_join(dupTW_summary,
         by = c("countryCode", "waterBodyIdentifier",
-               "waterBodyName", "Det")
+               "waterBodyName", "Season", "Det")
       ) %>%
       group_by(
-        countryCode, waterBodyIdentifier, waterBodyName,
+        countryCode, waterBodyIdentifier, waterBodyName, Season,
         Det
       ) %>%
       summarise(
         stations          = paste(unique(monitoringSiteIdentifier), collapse = ", "),
         schemes           = paste(unique(monitoringSiteIdentifierScheme), collapse=", "),
+        Season            = paste(unique(Season), collapse=", "),
         years             = paste(sort(unique(phenomenonTimeReferenceYear)), collapse = ", "),
         nSamples_raw      = n(),
         meanValue_raw     = mean(resultMeanValue, na.rm = TRUE),
@@ -639,13 +641,13 @@ for (p in names(periods)) {
     select(
       countryCode, waterBodyIdentifier, waterBodyName,
       observedPropertyDeterminandCode, observedPropertyDeterminandLabel,
-      Det, resultUom, resultMeanValue, lat, lon,
+      Det, resultUom, resultMeanValue, lat, lon, Season,
       phenomenonTimeReferenceYear
     ) %>%
     group_by(
       countryCode, waterBodyIdentifier, waterBodyName,
       observedPropertyDeterminandCode, observedPropertyDeterminandLabel,
-      Det, resultUom
+      Det, resultUom, Season
     ) %>%
     summarise(
       wbMeanValue = mean(resultMeanValue, na.rm = TRUE),
@@ -658,7 +660,7 @@ for (p in names(periods)) {
   
   #duplicate check (BEFORE pivot_wider)
   dupCW_summary <- WQ_CW_WBsummary_Period[[p]] %>%
-    count(countryCode, waterBodyIdentifier, waterBodyName, Det) %>%
+    count(countryCode, waterBodyIdentifier, waterBodyName, Season, Det) %>%
     filter(n > 1)
   
   if (nrow(dupCW_summary) > 0) {
@@ -670,7 +672,7 @@ for (p in names(periods)) {
     dupCW_details <- WQdatCWSite_Period[[p]] %>%
       semi_join(dupCW_summary,
         by = c("countryCode", "waterBodyIdentifier",
-               "waterBodyName", "Det")
+               "waterBodyName", "Season","Det")
       ) %>%
       group_by(
         countryCode, waterBodyIdentifier, waterBodyName,
@@ -679,6 +681,7 @@ for (p in names(periods)) {
       summarise(
         stations          = paste(unique(monitoringSiteIdentifier), collapse = ", "),
         schemes           = paste(unique(monitoringSiteIdentifierScheme), collapse=", "),
+        Season            = paste(unique(Season), collapse=", "),
         years             = paste(sort(unique(phenomenonTimeReferenceYear)), collapse = ", "),
         nSamples_raw      = n(),
         meanValue_raw     = mean(resultMeanValue, na.rm = TRUE),
@@ -807,12 +810,12 @@ head(WQ_CWWB_master_df) #check
 ### C4. Check units of P data to micrograms/L in WB-cycle combined datasets 
 ```{r WQ data change units TW }
 # CHECK units of P data to micrograms/L (keep both columns mg/L and ug/L versions)
-summary(WQ_TWWB_master_df)
+summary(WQ_TWWB_master_df) #some weird numbers on phosphorus data - check units
 ```
 
 ```{r WQ data change units CW}
 # CHECK units of P data to micrograms/L (keep both mg/L and ug/L versions)
-summary(WQ_CWWB_master_df)
+summary(WQ_CWWB_master_df) #some weird numbers on phosphorus data - check units
 ```
 
 ### C5. Export WB-cycle combined datasets to Excel multi-sheet files
@@ -835,7 +838,7 @@ for (p in names(WQ_TWWB_master_list)) {
   message("Adding sheet: ", sheet, "  (from original: ", p, ")")
   
   addWorksheet(wbTWWB, sheetName = sheet)
-  writeData(wbTWWB, sheet = sheet, x = WQ_TWWB_master[[p]])
+  writeData(wbTWWB, sheet = sheet, x = WQ_TWWB_master_df[[p]])
 }
 
 saveWorkbook(wbTWWB, here("DataCreated","WQ_TWWBsummary_Periods.xlsx"), overwrite = TRUE)
@@ -848,7 +851,7 @@ for (p in names(WQ_CWWB_master_list)) {
   sheet <- clean_sheet_name(p)
   
   addWorksheet(wbCWWB, sheetName = sheet)
-  writeData(wbCWWB, sheet = sheet, x = WQ_CWWB_master[[p]])
+  writeData(wbCWWB, sheet = sheet, x = WQ_CWWB_master_df[[p]])
 }
 
 saveWorkbook(wbCWWB, here("DataCreated","WQ_CWWBsummary_Periods.xlsx"), overwrite = TRUE)
@@ -856,7 +859,7 @@ saveWorkbook(wbCWWB, here("DataCreated","WQ_CWWBsummary_Periods.xlsx"), overwrit
 ```
 
 **Plots for checking weird values**
-Some P data seems to have has been reported in the wrong units (ug/L) rather than the stated (mg/L). Unsure - check with old reports and MS. Focus on the parameters to be used for BPG approaches testing: e.g. TN, NO3, Secchi Depth and Dissolved Oxygen
+Some P data seems to have has been reported in the wrong units (ug/L) rather than the stated (mg/L). Unsure - check with old reports and MS. Focus on the parameters to be used for BPG approaches testing: e.g. PO4P, TP, TN, NO3, Secchi Depth and Dissolved Oxygen
 ```{r SE check plots}
 #CW
 ggplot(WQ_CWWB_master_df, aes(x=as.factor(countryCode),y=PO4P_Mn)) +
