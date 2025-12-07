@@ -838,7 +838,7 @@ for (p in names(WQ_TWWB_master_list)) {
   message("Adding sheet: ", sheet, "  (from original: ", p, ")")
   
   addWorksheet(wbTWWB, sheetName = sheet)
-  writeData(wbTWWB, sheet = sheet, x = WQ_TWWB_master_df[[p]])
+  writeData(wbTWWB, sheet = sheet, x = WQ_TWWB_master_list[[p]])
 }
 
 saveWorkbook(wbTWWB, here("DataCreated","WQ_TWWBsummary_Periods.xlsx"), overwrite = TRUE)
@@ -851,7 +851,7 @@ for (p in names(WQ_CWWB_master_list)) {
   sheet <- clean_sheet_name(p)
   
   addWorksheet(wbCWWB, sheetName = sheet)
-  writeData(wbCWWB, sheet = sheet, x = WQ_CWWB_master_df[[p]])
+  writeData(wbCWWB, sheet = sheet, x = WQ_CWWB_master_list[[p]])
 }
 
 saveWorkbook(wbCWWB, here("DataCreated","WQ_CWWBsummary_Periods.xlsx"), overwrite = TRUE)
