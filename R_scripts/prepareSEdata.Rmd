@@ -58,12 +58,14 @@ resultUom <- c("%","mg{NO3}/L","[pH]","mg{NO2}/L","mg{NH4}/L","mg{P}/L","mg/L",
 # create data frame and rename columns
 Determinands <- data.frame(observedPropertyDeterminandCode,observedPropertyDeterminandLabel,Det,resultUom)
 
+```
+
+```{r Save determinands}
 #Save determinands used as rds file
 saveRDS(Determinands,file = here("Data","Determinands_TRaC.rds")) #TRaC WQ sites
 notes <- "Determinands extracted in extractWFDdata_WISE6_SE for TRaC waters. Database consulted November 2025. For further details see: https://discodata.eea.europa.eu and https://sdi.eea.europa.eu/catalogue/datahub/api/records/77976729-1aeb-4b61-a673-83db6c6a2ab2/formatters/xsl-view?output=pdf&language=eng&approved=true" 
 
 writeLines(notes,here("Data","ReadMe_Determinands.txt"))
-
 
 #Save determinands used as xlsx workbook
 wb <- createWorkbook()
@@ -83,6 +85,9 @@ WQdatCWSite <- readRDS(file = here("Data","dat_WQ_CW.rds")) #CW mean disaggSite
 WQdatTWSiteAgg <- readRDS(file = here("Data","dat_WQ_TWagg.rds")) #TW aggSite
 WQdatCWSiteAgg <- readRDS(file = here("Data","dat_WQ_CWagg.rds")) #CW aggSite
 
+```
+
+```{r add Determinands short names}
 #add Determinands short names in Det
 Determinands <- read.xlsx(here("Data","Determinands.xlsx"),sheet = "dets")
 Determinands.s<- Determinands %>% select(observedPropertyDeterminandLabel,Det)
@@ -92,7 +97,9 @@ WQdatCWSite <- WQdatCWSite %>% left_join(Determinands.s, by="observedPropertyDet
 
 WQdatTWSiteAgg <- WQdatTWSiteAgg %>% left_join(Determinands.s, by="observedPropertyDeterminandLabel") 
 WQdatCWSiteAgg <- WQdatCWSiteAgg %>% left_join(Determinands.s, by="observedPropertyDeterminandLabel") 
+```
 
+```{r remove Det = NAs}
 #filter datasets by Det !=NA, for keeping selected SE 
 #TW
 WQdatTWSite %>% 
@@ -107,13 +114,18 @@ WQdatCWSite %>%
   filter(is.na(Det)) %>%
   count()
 
+WQdatCWSiteAgg %>% 
+  filter(is.na(Det)) %>%
+  count()
+
 WQdatCWSiteAgg <- WQdatCWSiteAgg %>% 
   filter(!is.na(Det))
 
+```
+
+```{r prepare to merge datsets}
 names(WQdatTWSite)
 names(WQdatCWSiteAgg)
-
-#prepare to merge datsets
 
 #1st modify col name "resultStdValue" change to "resultStandardDeviationValue" to have std names across datasets
 WQdatTWSite <- WQdatTWSite %>% 
@@ -122,11 +134,85 @@ WQdatTWSite <- WQdatTWSite %>%
 WQdatCWSite <- WQdatCWSite %>% 
   rename(resultStandardDeviationValue = resultStdValue) #change name as in agg dataset
 
+#2nd add Season to Agg datasets from "parameterSamplingPeriod"
+
+#adjust code below or change mutated new variable name as needed
+#TW
+WQdatTWSiteAgg <- WQdatTWSiteAgg %>% 
+  mutate(
+    Season = case_when(
+      # Annual patterns
+      grepl("^[0-9]{4}-01--[0-9]{4}-12$", parameterSamplingPeriod) |
+      grepl("^[0-9]{4}-[0-9]{2}-01--[0-9]{4}-12-31$", parameterSamplingPeriod) |
+      grepl("^[0-9]{4}-10-01--[0-9]{4}-09-30$", parameterSamplingPeriod) ~ "Annual",
+
+      # Winter
+      grepl("^[0-9]{4}-12--[0-9]{4}-02$", parameterSamplingPeriod) ~ "Winter",
+
+      # Spring
+      grepl("^[0-9]{4}-03--[0-9]{4}-05$", parameterSamplingPeriod) ~ "Spring",
+
+      # Summer
+      grepl("^[0-9]{4}-06--[0-9]{4}-08$", parameterSamplingPeriod) ~ "Summer",
+
+      # Autumn
+      grepl("^[0-9]{4}-09--[0-9]{4}-11$", parameterSamplingPeriod) ~ "Autumn",
+
+      # Spring + Summer combined
+      grepl("^[0-9]{4}-04--[0-9]{4}-10$", parameterSamplingPeriod) ~ "SpringSummer",
+
+      # default: keep original
+      TRUE ~ parameterSamplingPeriod
+    )
+  )
+
+#CW
+WQdatCWSiteAgg <- WQdatCWSiteAgg %>% 
+  mutate(
+    Season = case_when(
+      # Annual patterns
+      grepl("^[0-9]{4}-01--[0-9]{4}-12$", parameterSamplingPeriod) |
+      grepl("^[0-9]{4}-[0-9]{2}-01--[0-9]{4}-12-31$", parameterSamplingPeriod) |
+      grepl("^[0-9]{4}-10-01--[0-9]{4}-09-30$", parameterSamplingPeriod) ~ "Annual",
+
+      # Winter
+      grepl("^[0-9]{4}-12--[0-9]{4}-02$", parameterSamplingPeriod) ~ "Winter",
+
+      # Spring
+      grepl("^[0-9]{4}-03--[0-9]{4}-05$", parameterSamplingPeriod) ~ "Spring",
+
+      # Summer
+      grepl("^[0-9]{4}-06--[0-9]{4}-08$", parameterSamplingPeriod) ~ "Summer",
+
+      # Autumn
+      grepl("^[0-9]{4}-09--[0-9]{4}-11$", parameterSamplingPeriod) ~ "Autumn",
+
+      # Spring + Summer combined
+      grepl("^[0-9]{4}-04--[0-9]{4}-10$", parameterSamplingPeriod) ~ "SpringSummer",
+      
+      # Spring + Summer + Autumn combined
+      grepl("^[0-9]{4}-0[3-5]{1}-[0-9]{2}--[0-9]{4}-[1-2]{2}-[0-9]{2}$", parameterSamplingPeriod) ~ "SpringSummerAutumn",
+
+      # default: keep original
+      TRUE ~ parameterSamplingPeriod
+    )
+  )
+
+# unassigned season ar all from DE: assuming Annual, also because disagregagted Danish data are all Annual
+WQdatTWSiteAgg <- WQdatTWSiteAgg %>% 
+  mutate(
+    Season = case_when(Season == "" ~ "Annual", 
+                        TRUE ~ Season)
+  )
+
+unique(WQdatCWSiteAgg$Season)
+unique(WQdatTWSiteAgg$Season)
+
 # Extra names in TW & CW aggregatedBySite datasets
-#"parameterSamplingPeriod","procedureLOQValue","resultQualityNumberOfSamplesBelowLOQ","resultQualityMinimumBelowLOQ","resultQualityMeanBelowLOQ","resultQualityMaximumBelowLOQ","resultQualityMedianBelowLOQ","resultMedianValue","procedureAnalyticalMethod","resultObservationStatus","remarks","metadata_beginLifeSpanVersion","metadata_statusCode","metadata_observationStatus","metadata_statements","UID"      
+#,"procedureLOQValue","resultQualityNumberOfSamplesBelowLOQ","resultQualityMinimumBelowLOQ","resultQualityMeanBelowLOQ","resultQualityMaximumBelowLOQ","resultQualityMedianBelowLOQ","resultMedianValue","procedureAnalyticalMethod","resultObservationStatus","remarks","metadata_beginLifeSpanVersion","metadata_statusCode","metadata_observationStatus","metadata_statements","UID"      
 
 #retain in merge:
-#"parameterSamplingPeriod","procedureLOQValue","resultQualityNumberOfSamplesBelowLOQ","resultMedianValue","remarks","metadata_statements"
+#"procedureLOQValue","resultQualityNumberOfSamplesBelowLOQ","resultMedianValue","remarks","metadata_statements"
 ```
 
 ### A3. Overview of countries & reporting years in each WQ dataset (disagg vs agg by Site)
@@ -136,11 +222,11 @@ WQdatCWSite <- WQdatCWSite %>%
 WQdatTWSite$countryCode %>% 
   unique() %>% 
   sort()
-#only in Disagg:"BE" "EL" "IE" "LT" "LV" "PL" "PT"
 
 WQdatTWSiteAgg$countryCode %>% 
   unique() %>% 
   sort()
+#only in Disagg:"BE" "EL" "IE" "LT" "LV" "PL" "PT"
 #only in Agg: "MT" 
 #in both datasets: "BG" "DE" "ES" "FR" "HR" "IT" "NL" "RO" "UK"
 
@@ -148,11 +234,11 @@ WQdatTWSiteAgg$countryCode %>%
 WQdatCWSite$countryCode %>% 
   unique() %>% 
   sort()
-#only in Disagg:"EE" "EL" "HR" "LT" "MT" "NL" "PL" "PT" "SE" "SI"
 
 WQdatCWSiteAgg$countryCode %>% 
   unique() %>% 
   sort()
+#only in Disagg:"EE" "EL" "HR" "LT" "MT" "NL" "PL" "PT" "SE" "SI"
 #only in Agg:"LV"
 #in both datasets:"ES" "IS" "IT" "NO" "UK"
 
@@ -161,40 +247,22 @@ WQdatTWSite %>%
   select(countryCode,phenomenonTimeReferenceYear) %>% 
   group_by(countryCode,phenomenonTimeReferenceYear)%>%
   summarise (n())%>%
-   ungroup() #e.g. of Bulgaria BG 2010-2022 (#samples 3,9,21 per year)
+   ungroup() 
 
 WQdatTWSiteAgg %>% 
   select(countryCode,phenomenonTimeReferenceYear) %>% 
   group_by(countryCode,phenomenonTimeReferenceYear)%>%
   summarise (n())%>%
-   ungroup() #e.g. of Bulgaria BG 1992-2012 (#samples 41,56,106 per year)
+   ungroup() 
 
 # often different years - good to merge datatsets, handle duplicates afterwards for overlapping years
-
-```
-
-```{r overview of reporting period annual / seasonal}
-#check parameterSamplingPeriod values
-#LEFT HERE
-#TW only Agg data has sampling period check at origin extract data script
-# ALSO empty info (NAs) to consider first
-# and ALSO different seasons reported
-#adjust code below or change mutated new variable name as needed
-WQdatTWSiteAgg <- WQdatTWSiteAgg %>% 
-  mutate(sampling = ifelse(
-    grepl("^[0-9]{4}-01--[0-9]{4}-12$|^[0-9]{4}-[0-9]{2}-01--[0-9]{4}-12-31$",
-          WQdatTWSiteAgg$parameterSamplingPeriod),
-  "annual data",
-  "seasonal data"))
-  
-
 
 ```
 
 ## B. per year data from combined WQ disaggregated and aggregated WQ datasets
 ### B1. Combine disaggregated and aggregated WQ data by Site per year
 ```{r Combine disagg and agg WQ datasets}
-
+#LEFT HERE
 # Extra names in TW & CW aggregatedBySite datasets to drop:
 #"resultQualityMinimumBelowLOQ","resultQualityMeanBelowLOQ","resultQualityMaximumBelowLOQ","resultQualityMedianBelowLOQ","procedureAnalyticalMethod","resultObservationStatus","metadata_beginLifeSpanVersion","metadata_statusCode","metadata_observationStatus","UID" 
 
@@ -220,6 +288,13 @@ WQdatTWSite$source <- "WISE6 disaggregated by Site"
 WQdatCWSite$source <- "WISE6 disaggregated by Site"
 WQdatTWSiteAgg.sel$source <- "WISE6 aggregated by Site"
 WQdatCWSiteAgg.sel$source <- "WISE6 aggregated by Site"
+
+#check different variables
+symdiff(names(WQdatTWSite), names(WQdatTWSiteAgg.sel))
+#drop from TW:
+# "thematicIdIdentifierScheme","thematicIdIdentifier" 
+
+
 
 WQdatTWSiteMeanYearly <- full_join(WQdatTWSite, WQdatTWSiteAgg.sel, suffix = c(".dis", ".agg")) #TW
 WQdatCWSiteMeanYearly <- full_join(WQdatCWSite, WQdatCWSiteAgg.sel, suffix = c(".dis", ".agg")) #CW
