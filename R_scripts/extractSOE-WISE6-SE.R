@@ -505,18 +505,18 @@ WISE6_WQ_AggSite.TRaC <- WISE6_WQ_AggSite.TRaC  %>%
 WISE6_WQ_AggSite.TRaC.Spatial <- left_join(WISE6_WQ_AggSite.TRaC,WISE6_Spatial_TRaC_shrt,
                                by=c("monitoringSiteIdentifier", "thematicIdIdentifierScheme")) # n stays the same OK
 
-WISE6_WQ_AggSite.TRaC $Created <- Sys.Date()
+WISE6_WQ_AggSite.TRaC.Spatial$Created <- Sys.Date()
 #Save TW data
-WISE6_WQ_AggSite.TW <- WISE6_WQ_AggSite.TRaC %>%
+WISE6_WQ_AggSite.TW.Spatial <- WISE6_WQ_AggSite.TRaC.Spatial %>%
   filter(parameterWaterBodyCategory == "TW")
 
-saveRDS(WISE6_WQ_AggSite.TW ,file = here("Data", "dat_WQ_TWagg.rds"))
+saveRDS(WISE6_WQ_AggSite.TW.Spatial ,file = here("Data", "dat_WQ_TWagg.rds"))
 
 #Save CW data
-WISE6_WQ_AggSite.CW <- WISE6_WQ_AggSite.TRaC %>%
+WISE6_WQ_AggSite.CW.Spatial <- WISE6_WQ_AggSite.TRaC.Spatial %>%
   filter(parameterWaterBodyCategory == "CW")
 
-saveRDS(WISE6_WQ_AggSite.CW ,file = here("Data", "dat_WQ_CWagg.rds"))
+saveRDS(WISE6_WQ_AggSite.CW.Spatial ,file = here("Data", "dat_WQ_CWagg.rds"))
 
 
 ## Select TRaC aggregated data by waterbody ---- 
