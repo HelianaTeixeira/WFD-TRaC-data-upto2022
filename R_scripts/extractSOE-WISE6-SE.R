@@ -484,6 +484,8 @@ levels(as.factor(WISE6_WQ_AggSite.TRaC$phenomenonTimeReferenceYear))
 # [37] "2007" "2008" "2009" "2010" "2011" "2012" "2013" "2014" "2015" "2016" "2017" "2018"
 # [49] "2019" "2020" "2021" "2022" "2023"
 
+rm(WISE6_WQ_AggSite) #free memory
+gc()
 #search e.g. for transparency data
 WISE6_WQ_AggSite.TRaC %>%
   filter(observedPropertyDeterminandLabel == "Secchi depth")%>%
@@ -492,6 +494,16 @@ WISE6_WQ_AggSite.TRaC %>%
 # countryCode     n
 # IT             15
 # NL             12
+
+#left_join SE & spatial data info
+WISE6_Spatial_TRaC_shrt<-readRDS(here("Data","dat_W6_SOE_TRaC_Spatial_short_b.rds"))
+#TRaCAggSite join spatial data
+WISE6_WQ_AggSite.TRaC <- WISE6_WQ_AggSite.TRaC  %>%
+  mutate(thematicIdIdentifierScheme = monitoringSiteIdentifierScheme)
+
+
+WISE6_WQ_AggSite.TRaC.Spatial <- left_join(WISE6_WQ_AggSite.TRaC,WISE6_Spatial_TRaC_shrt,
+                               by=c("monitoringSiteIdentifier", "thematicIdIdentifierScheme")) # n stays the same OK
 
 WISE6_WQ_AggSite.TRaC $Created <- Sys.Date()
 #Save TW data
