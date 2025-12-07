@@ -312,6 +312,7 @@ dat_WQ_TW <- dat_WQ_TW %>%
   summarise(
     resultMeanValue = mean(resultObservedValue, na.rm=TRUE),
     resultStdValue = sd(resultObservedValue, na.rm=TRUE), # for data dispersion
+    resultMedianValue = median(resultObservedValue, na.rm=TRUE),
     resultMinimumValue = min(resultObservedValue, na.rm=TRUE),
     resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
     resultNumberOfSamples = n(), 
@@ -371,6 +372,8 @@ dat_WQ_CW <- dat_WQ_CW %>%
   summarise(
     resultMeanValue = mean(resultObservedValue, na.rm=TRUE),
     resultStdValue = sd(resultObservedValue, na.rm=TRUE), #for data dispersion
+    resultMedianValue = median(resultObservedValue, na.rm=TRUE),
+    resultMinimumValue = min(resultObservedValue, na.rm=TRUE),
     resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
     resultNumberOfSamples = n(),
     .groups = "drop"
