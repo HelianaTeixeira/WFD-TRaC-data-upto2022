@@ -262,10 +262,7 @@ WQdatTWSiteAgg %>%
 ## B. per year data from combined WQ disaggregated and aggregated WQ datasets
 ### B1. Combine disaggregated and aggregated WQ data by Site per year
 ```{r Combine disagg and agg WQ datasets}
-#LEFT HERE
 # Extra names in TW & CW aggregatedBySite datasets to drop:
-#"resultQualityMinimumBelowLOQ","resultQualityMeanBelowLOQ","resultQualityMaximumBelowLOQ","resultQualityMedianBelowLOQ","procedureAnalyticalMethod","resultObservationStatus","metadata_beginLifeSpanVersion","metadata_statusCode","metadata_observationStatus","UID" 
-
 WQdatTWSiteAgg.sel <- WQdatTWSiteAgg %>% 
   select(-c(resultQualityMinimumBelowLOQ,resultQualityMeanBelowLOQ,
             resultQualityMaximumBelowLOQ,resultQualityMedianBelowLOQ,
@@ -289,24 +286,39 @@ WQdatCWSite$source <- "WISE6 disaggregated by Site"
 WQdatTWSiteAgg.sel$source <- "WISE6 aggregated by Site"
 WQdatCWSiteAgg.sel$source <- "WISE6 aggregated by Site"
 
+
 #check different variables
 symdiff(names(WQdatTWSite), names(WQdatTWSiteAgg.sel))
-#drop from TW:
-# "thematicIdIdentifierScheme","thematicIdIdentifier" 
+symdiff(names(WQdatCWSite), names(WQdatCWSiteAgg.sel))
 
+#drop variavles before merge from Agg datasets TW & CW:
+WQdatTWSiteAgg.sel <- WQdatTWSiteAgg.sel %>%
+  mutate(countryCode = countryCode.x )%>%
+  select(-c("countryCode.x","countryCode.y",
+            "parameterSamplingPeriod","procedureLOQValue",
+            "resultQualityNumberOfSamplesBelowLOQ","remarks",
+            "metadata_statements")
+         )#drop from TW
 
+WQdatCWSiteAgg.sel <- WQdatCWSiteAgg.sel %>%
+  mutate(countryCode = countryCode.x )%>%
+  select(-c("countryCode.x","countryCode.y",
+            "parameterSamplingPeriod","procedureLOQValue",
+            "resultQualityNumberOfSamplesBelowLOQ","remarks",
+            "metadata_statements")
+         )#drop from CW
 
 WQdatTWSiteMeanYearly <- full_join(WQdatTWSite, WQdatTWSiteAgg.sel, suffix = c(".dis", ".agg")) #TW
 WQdatCWSiteMeanYearly <- full_join(WQdatCWSite, WQdatCWSiteAgg.sel, suffix = c(".dis", ".agg")) #CW
 
 #check duplicates (same site, year, det)
 WQdatTWSiteMeanYearly %>% 
-  group_by(monitoringSiteIdentifier,waterBodyIdentifier,phenomenonTimeReferenceYear,Det) %>%
+  group_by(monitoringSiteIdentifier,waterBodyIdentifier,phenomenonTimeReferenceYear,Season,Det) %>%
   filter(n()>1) %>%
   ungroup() 
 
 WQdatCWSiteMeanYearly %>% 
-  group_by(monitoringSiteIdentifier,waterBodyIdentifier,phenomenonTimeReferenceYear,Det) %>%
+  group_by(monitoringSiteIdentifier,waterBodyIdentifier,phenomenonTimeReferenceYear,Season,Det) %>%
   filter(n()>1) %>%
   ungroup()
 ```
