@@ -80,18 +80,41 @@ This script prepares the previously extracted water quality data (WQ from WISE-6
 **3rd Prepare Biological DATA:** 
 This script prepares the previously extracted biological classifications (BQE from WISE-4 & WISE-2) prior to joining it with the water quality data (WQ from WISE-6) for selected supporting elements (SE), for both TRaC water categories (TW & CW).
 
-* BQE - From WISE2, EQR & EQS aggregated by Site (yearly), except for EE, IE and SI for which only report aggregated data by WB was available at source, so the EQR & EQSaggWB data was also extracted (for all countries and for those 4 countries). Data was extracted for all years available.
+EQS:
+
+* BQE - From WISE2, EQS aggWB data was extracted, for all years available.
 
 * BQE - From WISE4, only WB aggregated EQS data (i.e., categories, not EQR) was available for the 1st and 2nd reporting cycle years 2010 and 2016.
 
-**4th COMBINE BIOLOGY & SE DATA:** the script WFD-TRaC-data-upto2022/R_scripts/"CombineTraC_SE-BQE.Rmd" was used to merge the extracted water quality data (WQ from WISE-6) for selected supporting elements (SE, i.e. nutrients and other physico-chemical parameters) to the biological classifications (BQE from WISE-4 (only EQS) & WISE-2 (both EQR and EQS)), for both TRaC water categories (TW & CW), using samples' code. More details within the script, including of corrections performed.
+EQR:
+
+* BQE - From WISE2, datasets for TW & CW with EQR & EQS aggregated by Site and year/season (except for EE, IE and SI for which only already aggregated data by WB was available at source) were already generated while extracting BQE data using script "extractSOE-WISE2-Biology.R".
+
+**4th COMBINE BIOLOGY & SE DATA:** the script WFD-TRaC-data-upto2022/R_scripts/"CombineTraC_SE-BQE.Rmd" was used to merge the extracted water quality data (WQ from WISE-6) for selected supporting elements (SE, i.e. nutrients and other physico-chemical parameters) to the biological classifications (BQE from WISE-4 (only EQS) & WISE-2 (both EQR and EQS)), for both TRaC water categories (TW & CW), using site and/or WB code. More details within the script, including corrections performed.
 
 ## OUTPUT Datasets: 
-Overall, separate datasets were created (subdirectory WFD-TRaC-data-upto2022/DataCreated) for each water category (TW & CW) per WFD reporting cycle: 2010 (1st cycle), 2016 (2nd cycle) and 2022 (3rd cycle):
+Datasets created (subdirectory WFD-TRaC-data-upto2022/DataCreated):
 
-(datasets need update as they changed format)
-1. BQESEdatTW_WFD2010.xlsx - TW 2010 to be added
-2. BQESEdatCW_WFD2010.xlsx - CW 2010 to be added
-3. BQESEdatTW_WFD2016.xlsx (n=111) for all BQE in all available MS reporting
-4. BQESEdatCW_WFD2016.xlsx (n=115) for all BQE in all available MS reporting
-5. ...
+Water Quality datasets (SE):
+1.	WQ_CWWBsummary_Periods.xlsx
+2.	WQ_TWWBsummary_Periods.xlsx
+3.	*WQ_CWWB_Duplicates_Report.xlsx*
+4.	*WQ_TWWB_Duplicates_Report.xlsx*
+5.	WQdatCW_aggWBmean_year.xlsx
+6.	WQdatTW_aggWBmean_year.xlsx
+7.	WQdatCW_siteMean_year.xlsx
+8.	WQdatTW_siteMean_year.xlsx
+
+Biological Quality datasets (BQE):
+9.	BQEdatTRaC_aggWB_year_wise2.xlsx
+10.	BQEdatCW_siteMean_year_wise2.xlsx
+11.	BQEdatTW_siteMean_year_wise2.xlsx
+12.	BQEdat-EQS_aggrWBCycles_ICtypes.xlsx
+
+Joined BQE & SE datasets:
+13.	BQESEdatCW_WFDallCycles.xlsx
+14.	*BQESEdatCW_WFDallCycles_ReadMe.txt*
+15.	BQESEdatTW_WFDallCycles.xlsx
+16.	*BQESEdatTW_WFDallCycles_ReadMe.txt*
+17.	*Duplicate_Report_TW_CW_BQE_WQ.xlsx*
+
