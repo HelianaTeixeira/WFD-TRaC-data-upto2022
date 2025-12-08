@@ -259,7 +259,7 @@ WQdatTWSiteAgg %>%
 
 ```
 
-## B. per year data from combined WQ disaggregated and aggregated WQ datasets
+## B. Yearly data from combined WQ disaggregated and aggregated WQ datasets
 ### B1. Combine disaggregated and aggregated WQ data by Site per year
 ```{r Combine disagg and agg WQ datasets}
 # Extra names in TW & CW aggregatedBySite datasets to drop:
@@ -332,7 +332,7 @@ write.xlsx(WQdatTWSiteMeanYearly,here("DataCreated","WQdatTW_siteMean_year.xlsx"
 write.xlsx(WQdatCWSiteMeanYearly,here("DataCreated","WQdatCW_siteMean_year.xlsx")) #CW
 ```
 
-### B2. Combine WQ data at Water Body level per year
+### B2. Combine siteMean*yearly WQ data at Water Body level per year
 ```{r Combine WQ at WB level}
 #TW prepare for aggregation at WB level
 list.1 <- WQdatTWSiteMeanYearly %>% 
@@ -828,7 +828,6 @@ clean_sheet_name <- function(x) {
   return(x)
 }
 
-
 #TW
 wbTWWB <- createWorkbook()
 
@@ -855,11 +854,10 @@ for (p in names(WQ_CWWB_master_list)) {
 }
 
 saveWorkbook(wbCWWB, here("DataCreated","WQ_CWWBsummary_Periods.xlsx"), overwrite = TRUE)
-
 ```
 
 **Plots for checking weird values**
-Some P data seems to have has been reported in the wrong units (ug/L) rather than the stated (mg/L). Unsure - check with old reports and MS. Focus on the parameters to be used for BPG approaches testing: e.g. PO4P, TP, TN, NO3, Secchi Depth and Dissolved Oxygen
+Some Phosphorus data seems to have been reported in the wrong units (ug/L) rather than the stated (mg/L). Unsure - check with old reports and MS practices. Focus on the parameters to be used for BPG approaches testing, e.g. PO4P, TP, TN, NO3, Secchi Depth and Dissolved Oxygen.
 ```{r SE check plots}
 #CW
 ggplot(WQ_CWWB_master_df, aes(x=as.factor(countryCode),y=PO4P_Mn)) +
