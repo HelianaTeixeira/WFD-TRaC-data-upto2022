@@ -25,7 +25,7 @@ EQS:
 * BQE - From WISE4, only WB aggregated EQS data (i.e., categories, not EQR) was available for the 1st and 2nd reporting cycle years 2010 and 2016.
 
 EQR:
-* BQE - From WISE2, datasets for TW & CW with EQR & EQS aggregated by Site and year/season, (except for EE, IE and SI for which only already aggregated data by WB was available at source) were already generated while extracting BQE data using script "extractSOE-WISE2-Biology.R".
+* BQE - From WISE2, datasets for TW & CW with EQR & EQS aggregated by Site and year/season, (except for EE, IE and SI for which only already aggregated data by WB was available at source) and aggWB/year were already generated while extracting BQE data using script "extractSOE-WISE2-Biology.R".
 
 ### A. Import BQE data for TraC Waters per year
 ```{r Import WISE4 Biota EQS classifications to Wide format}
