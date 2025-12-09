@@ -102,9 +102,9 @@ Water Quality datasets (SE):
 3.	WQdatTW_aggWBmean_year.xlsx
 4.	WQdatCW_aggWBmean_year.xlsx
 5.	WQdatTRaC_aggWBmean_Cycle.xlsx
-6.	WQ_TWWBsummary_Periods.xlsx (split per different spreadsheets)
+6.	WQ_TWWBsummary_Periods.xlsx (split per different spreadsheets)  
 *WQ_TWWB_Duplicates_Report.xlsx*
-7.	WQ_CWWBsummary_Periods.xlsx (split per different spreadsheets)
+7.	WQ_CWWBsummary_Periods.xlsx (split per different spreadsheets)  
 *WQ_CWWB_Duplicates_Report.xlsx*
 
 Biological Quality datasets (BQE):
@@ -116,11 +116,11 @@ Biological Quality datasets (BQE):
 
 Joined BQE & SE datasets:
 
-1.	BQESEdatTW_WFDallCycles.xlsx (EQS only - wise4)
+1.	BQESEdatTW_WFDallCycles.xlsx (EQS only - wise4)  
 *BQESEdatTW_WFDallCycles_ReadMe.txt*
-2.	BQESEdatCW_WFDallCycles.xlsx (EQS only - wise4)
+2.	BQESEdatCW_WFDallCycles.xlsx (EQS only - wise4)  
 *BQESEdatCW_WFDallCycles_ReadMe.txt*
-3.	BQESEdat_WBMnYrTW.xlsx
+3.	BQESEdat_WBMnYrTW.xlsx  
 *BQESEdat_WBMnYrTW_ReadMe.txt*
 4.	BQESEdat_WBMnYrCW.xlsx
 BQESEdat_WBMnYrCW_ReadMe.txt
@@ -128,10 +128,12 @@ BQESEdat_WBMnYrCW_ReadMe.txt
 6.	BQESEdat_WBCycleTW_wise2nEQR_EQS.xlsx
 7.	BQESEdat_WBCycleCW_wise4EQS.xlsx
 8.	BQESEdat_WBCycleCW_wise2nEQR_EQS.xlsx
+9.	
 *BQESEdat_WBCycle-TRaC_wise4EQS-wise2nEQR-EQS_ReadMe.txt*
-9.	BQESEdat_SiteMnYrTW.xlsx
+
+11.	BQESEdat_SiteMnYrTW.xlsx  
 *BQESEdat_SiteMnYrTW_ReadMe.txt*
-10.	BQESEdat_SiteMnYrCW.xlsx
+12.	BQESEdat_SiteMnYrCW.xlsx  
 *BQESEdat_SiteMnYrCW_ReadMe.txt*
 
 
