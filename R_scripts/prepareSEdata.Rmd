@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(here)
 library(openxlsx)
+library(readxl)
+library(purrr)
 library(tidyverse)
 library(dplyr)
 library(tidyr)
@@ -856,6 +858,68 @@ for (p in names(WQ_CWWB_master_list)) {
 saveWorkbook(wbCWWB, here("DataCreated","WQ_CWWBsummary_Periods.xlsx"), overwrite = TRUE)
 ```
 
+### C6. save TW and CW data each in a single excel sheet
+```{r import newly created multisheet excel}
+
+#1st Define function
+clean_sheet_name <- function(x) {
+  x <- gsub("[:\\\\/?*\\[\\]<>]", "_", x)
+  x <- trimws(x)
+  x <- substr(x, 1, 31)
+  x
+}
+
+#2nd Read sheets and stack them
+#TW
+tw_file <- here("DataCreated","WQ_TWWBsummary_Periods.xlsx")
+tw_sheet_names <- excel_sheets(tw_file)
+
+tw_list <- map(tw_sheet_names, function(s) {
+  df <- read_excel(tw_file, sheet = s)
+  # ensure it's a tibble/data.frame
+  df <- as_tibble(df)
+  # add a column recording the original period/sheet and source
+  df %>% mutate(
+    source = "TW",
+    period_sheet = s
+  )
+})
+
+# bind rows, filling missing columns with NA
+dat_TW_all <- bind_rows(tw_list)
+
+#CW
+cw_file <- here("DataCreated","WQ_CWWBsummary_Periods.xlsx")
+cw_sheet_names <- excel_sheets(cw_file)
+
+cw_list <- map(cw_sheet_names, function(s) {
+  df <- read_excel(cw_file, sheet = s)
+  df <- as_tibble(df)
+  df %>% mutate(
+    source = "CW",
+    period_sheet = s
+  )
+})
+
+# bind rows, filling missing columns with NA
+dat_CW_all <- bind_rows(cw_list)
+
+#3rd Write result(s) to a single Excel workbook (one file) one spreadsheet per water category
+out_file <- here("DataCreated", "WQdatTRaC_aggWBmean_Cycle.xlsx")
+
+wb <- createWorkbook()
+
+addWorksheet(wb, clean_sheet_name("TW"))
+writeData(wb, sheet = clean_sheet_name("TW"), dat_TW_all)
+
+addWorksheet(wb, clean_sheet_name("CW"))
+writeData(wb, sheet = clean_sheet_name("CW"), dat_CW_all)
+
+saveWorkbook(wb, out_file, overwrite = TRUE)
+
+```
+
+## check overviews final
 **Plots for checking weird values**
 Some Phosphorus data seems to have been reported in the wrong units (ug/L) rather than the stated (mg/L). Unsure - check with old reports and MS practices. Focus on the parameters to be used for BPG approaches testing, e.g. PO4P, TP, TN, NO3, Secchi Depth and Dissolved Oxygen.
 ```{r SE check plots}
