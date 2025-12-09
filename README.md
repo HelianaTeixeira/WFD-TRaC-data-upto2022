@@ -93,28 +93,45 @@ EQR:
 **4th COMBINE BIOLOGY & SE DATA:** the script WFD-TRaC-data-upto2022/R_scripts/"CombineTraC_SE-BQE.Rmd" was used to merge the extracted water quality data (WQ from WISE-6) for selected supporting elements (SE, i.e. nutrients and other physico-chemical parameters) to the biological classifications (BQE from WISE-4 (only EQS) & WISE-2 (both EQR and EQS)), for both TRaC water categories (TW & CW), using site and/or WB code. More details within the script, including corrections performed.
 
 ## OUTPUT Datasets: 
-Datasets created (subdirectory WFD-TRaC-data-upto2022/DataCreated):
+Datasets created with scripts described above, not on Github (subdirectory WFD-TRaC-data-upto2022/DataCreated).
 
 Water Quality datasets (SE):
-1.	WQ_CWWBsummary_Periods.xlsx
-2.	WQ_TWWBsummary_Periods.xlsx
-3.	*WQ_CWWB_Duplicates_Report.xlsx*
-4.	*WQ_TWWB_Duplicates_Report.xlsx*
-5.	WQdatCW_aggWBmean_year.xlsx
-6.	WQdatTW_aggWBmean_year.xlsx
-7.	WQdatCW_siteMean_year.xlsx
-8.	WQdatTW_siteMean_year.xlsx
+
+1.	WQdatTW_siteMean_year.xlsx
+2.	WQdatCW_siteMean_year.xlsx
+3.	WQdatTW_aggWBmean_year.xlsx
+4.	WQdatCW_aggWBmean_year.xlsx
+5.	WQdatTRaC_aggWBmean_Cycle.xlsx
+6.	WQ_TWWBsummary_Periods.xlsx (split per different spreadsheets)
+*WQ_TWWB_Duplicates_Report.xlsx*
+7.	WQ_CWWBsummary_Periods.xlsx (split per different spreadsheets)
+*WQ_CWWB_Duplicates_Report.xlsx*
 
 Biological Quality datasets (BQE):
-9.	BQEdatTRaC_aggWB_year_wise2.xlsx
-10.	BQEdatCW_siteMean_year_wise2.xlsx
-11.	BQEdatTW_siteMean_year_wise2.xlsx
-12.	BQEdat-EQS_aggrWBCycles_ICtypes.xlsx
+
+8.	BQEdatTW_siteMean_year_wise2.xlsx
+9.	BQEdatCW_siteMean_year_wise2.xlsx
+10.	BQEdatTRaC_aggWB_year_wise2.xlsx
+11.	BQEdat-EQS_aggrWBCycles_ICtypes.xlsx
 
 Joined BQE & SE datasets:
-13.	BQESEdatCW_WFDallCycles.xlsx
-14.	*BQESEdatCW_WFDallCycles_ReadMe.txt*
-15.	BQESEdatTW_WFDallCycles.xlsx
-16.	*BQESEdatTW_WFDallCycles_ReadMe.txt*
-17.	*Duplicate_Report_TW_CW_BQE_WQ.xlsx*
+
+1.	BQESEdatTW_WFDallCycles.xlsx (EQS only - wise4)
+*BQESEdatTW_WFDallCycles_ReadMe.txt*
+2.	BQESEdatCW_WFDallCycles.xlsx (EQS only - wise4)
+*BQESEdatCW_WFDallCycles_ReadMe.txt*
+3.	BQESEdat_WBMnYrTW.xlsx
+*BQESEdat_WBMnYrTW_ReadMe.txt*
+4.	BQESEdat_WBMnYrCW.xlsx
+BQESEdat_WBMnYrCW_ReadMe.txt
+5.	BQESEdat_WBCycleTW_wise4EQS.xlsx
+6.	BQESEdat_WBCycleTW_wise2nEQR_EQS.xlsx
+7.	BQESEdat_WBCycleCW_wise4EQS.xlsx
+8.	BQESEdat_WBCycleCW_wise2nEQR_EQS.xlsx
+*BQESEdat_WBCycle-TRaC_wise4EQS-wise2nEQR-EQS_ReadMe.txt*
+9.	BQESEdat_SiteMnYrTW.xlsx
+*BQESEdat_SiteMnYrTW_ReadMe.txt*
+10.	BQESEdat_SiteMnYrCW.xlsx
+*BQESEdat_SiteMnYrCW_ReadMe.txt*
+
 
