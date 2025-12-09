@@ -8,7 +8,7 @@ This work was developed within the Water Framework Directive (WFD) Common Implem
 - author: Heliana Teixeira
 - contacts: heliana.teixeira@ua.pt
 - date created: 2022.10.20
-- updated: 2025.11.12
+- updated: 2025.12.08
 
 Assembling Water Quality data from: 
 * WISE4 (identifier: eea_wise-wfd_s) WFD Biological Quality Elements (EQS categorical) (WFD 1st (<2010) & 2nd (<2016) cycles; SE info available in WISE4 was also extracted; note: TraC data in this source spans from 2000 to 2018);
