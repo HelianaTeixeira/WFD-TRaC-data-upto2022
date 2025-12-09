@@ -252,22 +252,4 @@ write.xlsx(WISE2_Biology_AggrWB.TRaCspatial,
            file = here("DataCreated","BQEdatTRaC_aggWB_year_wise2.xlsx"),
            sheetName = "TRaC_BQEdat", overwrite = TRUE)
 
-### LEFT HERE Aggregate Site data by WB---- 
 
-#dat_WQ_TW <- WISE2_Biology_Site.TWspatial %>%
-  # select(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeSamplingDate,parameterSampleDepth,sampleIdentifier,resultObservedValue) %>% 
-  # filter(parameterWaterBodyCategory == "TW" & observedPropertyDeterminandCode %in% detUsed) %>% 
-  # mutate(phenomenonTimeReferenceYear = as.numeric(substr(phenomenonTimeSamplingDate,1,4))) %>% 
-  # group_by(monitoringSiteIdentifier,monitoringSiteIdentifierScheme,parameterWaterBodyCategory,observedPropertyDeterminandCode,observedPropertyDeterminandLabel,procedureAnalysedMatrix,resultUom,phenomenonTimeReferenceYear,parameterSampleDepth) %>%
-  # summarise(resultMeanValue = mean(resultObservedValue, na.rm=TRUE),
-  #           resultStdValue = sd(resultObservedValue, na.rm=TRUE), # for data dispersion
-  #           resultMinimumValue = min(resultObservedValue, na.rm=TRUE),
-  #           resultMaximumValue = max(resultObservedValue, na.rm=TRUE),
-  #           resultNumberOfSamples = n()) %>% 
-  # mutate(metadata_versionId = "Waterbase_v2024_WISE6_DisaggregatedData")
-
-#NOT USED:
-#to extract annual data from 2016 onwards to complement info extracted from WISE4
-#select 2016 onwards data only
-# WISE2_Biology_AggrWB.TRaC.recent <- WISE2_Biology_AggrWB.TRaC %>% 
-#   filter(phenomenonTimeReferenceYear > 2015)
