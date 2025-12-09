@@ -109,10 +109,10 @@ Water Quality datasets (SE):
 
 Biological Quality datasets (BQE):
 
-8.	BQEdatTW_siteMean_year_wise2.xlsx
-9.	BQEdatCW_siteMean_year_wise2.xlsx
-10.	BQEdatTRaC_aggWB_year_wise2.xlsx
-11.	BQEdat-EQS_aggrWBCycles_ICtypes.xlsx
+1.	BQEdatTW_siteMean_year_wise2.xlsx
+2.	BQEdatCW_siteMean_year_wise2.xlsx
+3.	BQEdatTRaC_aggWB_year_wise2.xlsx
+4.	BQEdat-EQS_aggrWBCycles_ICtypes.xlsx
 
 Joined BQE & SE datasets:
 
@@ -128,12 +128,12 @@ BQESEdat_WBMnYrCW_ReadMe.txt
 6.	BQESEdat_WBCycleTW_wise2nEQR_EQS.xlsx
 7.	BQESEdat_WBCycleCW_wise4EQS.xlsx
 8.	BQESEdat_WBCycleCW_wise2nEQR_EQS.xlsx
-9.	
+	
 *BQESEdat_WBCycle-TRaC_wise4EQS-wise2nEQR-EQS_ReadMe.txt*
 
-11.	BQESEdat_SiteMnYrTW.xlsx  
+9.	BQESEdat_SiteMnYrTW.xlsx  
 *BQESEdat_SiteMnYrTW_ReadMe.txt*
-12.	BQESEdat_SiteMnYrCW.xlsx  
+10.	BQESEdat_SiteMnYrCW.xlsx  
 *BQESEdat_SiteMnYrCW_ReadMe.txt*
 
 
