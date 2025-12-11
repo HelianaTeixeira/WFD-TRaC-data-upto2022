@@ -45,7 +45,7 @@ version: "latest" WISE SOE Waterbase T available in 2025
   - ds2: *AggregatedData*
   source: https://discodata.eea.europa.eu/download/WISE_SOE/latest/Waterbase_T_WISE6_AggregatedData 
 
-  Data is reported by EEA member countries as individual samples from monitoring sites in the DisaggregatedData table or as annual aggregates of samples from monitoring sites in the AggregatedData table. Therefore data found in one table is not found in the other, and visa versa. 
+  Data is reported by EEA member countries as individual samples from monitoring sites in the DisaggregatedData table or as annual aggregates of samples from monitoring sites in the AggregatedData table. Therefore data found in one table is not found in the other, and vice-versa. 
 
 note3: SE Data in AggregatedDataByWaterBody dataset is mostly historical and currently only has GW information, thus discarded for this work.
 
@@ -82,7 +82,7 @@ This script prepares the previously extracted biological classifications (BQE fr
 
 EQS:
 
-* BQE - From WISE2, EQS aggWB data was extracted, for all years available.
+* BQE - From WISE2, EQS aggWB data was extracted, for all years available, to macth WISE4 format (below). In addition, other aggregation levels were considered to match EQR available info (see below).
 
 * BQE - From WISE4, only WB aggregated EQS data (i.e., categories, not EQR) was available for the 1st and 2nd reporting cycle years 2010 and 2016.
 
